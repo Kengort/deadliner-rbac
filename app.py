@@ -295,6 +295,10 @@ def create_app() -> Flask:
             )
 
             if project.is_overdue:
+                if project.end_date is not None:
+                    project.days_overdue = max(0, (today - project.end_date).days)
+                else:
+                    project.days_overdue = 0
                 overdue_projects.append(project)
             elif project.status == "Completed":
                 completed_projects.append(project)
