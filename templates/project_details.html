@@ -45,7 +45,9 @@
                                 <span class="font-medium text-slate-700 flex items-center gap-1">Сроки</span>
                                 <div class="grid grid-cols-[1fr,auto,1fr] items-center gap-2">
                                     <div class="relative">
-                                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">📅</span>
+                                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">
+                                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                                        </span>
                                         <input
                                             type="text"
                                             inputmode="numeric"
@@ -57,7 +59,9 @@
                                     </div>
                                     <span class="text-xs text-slate-400">—</span>
                                     <div class="relative">
-                                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">📅</span>
+                                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">
+                                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                                        </span>
                                         <input
                                             type="text"
                                             inputmode="numeric"
@@ -72,7 +76,9 @@
                             <div class="space-y-1">
                                 <span class="font-medium text-slate-700 flex items-center gap-1">Бюджет</span>
                                 <div class="relative">
-                                    <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">💰</span>
+                                    <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+                                        <i data-lucide="wallet" class="w-4 h-4"></i>
+                                    </span>
                                     <input
                                         type="number"
                                         name="budget"
@@ -103,8 +109,9 @@
                         </div>
 
                         <div class="space-y-2">
-                            <label class="text-sm font-semibold text-slate-800 flex items-center gap-1 font-medium">
-                                📝 Описание проекта
+                            <label class="text-sm font-semibold text-slate-800 flex items-center gap-2 font-medium">
+                                <i data-lucide="file-text" class="w-4 h-4 text-slate-500"></i>
+                                Описание проекта
                             </label>
                             <textarea
                                 name="description"
@@ -143,7 +150,10 @@
 
                     <div class="grid gap-4 text-sm text-slate-600 md:grid-cols-2">
                         <div class="space-y-1">
-                            <span class="font-medium text-slate-700 flex items-center gap-1">📅 Сроки</span>
+                            <span class="font-medium text-slate-700 flex items-center gap-2">
+                                <i data-lucide="calendar" class="w-4 h-4 text-slate-500"></i>
+                                Сроки
+                            </span>
                             <div class="text-sm text-slate-700">
                                 {% if project.start_date %}{{ project.start_date.strftime('%d.%m.%Y') }}{% else %}—{% endif %}
                                 —
@@ -151,7 +161,10 @@
                             </div>
                         </div>
                         <div class="space-y-1">
-                            <span class="font-medium text-slate-700 flex items-center gap-1">💰 Бюджет</span>
+                            <span class="font-medium text-slate-700 flex items-center gap-2">
+                                <i data-lucide="wallet" class="w-4 h-4 text-slate-500"></i>
+                                Бюджет
+                            </span>
                             <div class="text-sm font-medium text-slate-900">
                                 {% if project.budget is not none %}
                                     {{ "{:,.0f}".format(project.budget).replace(",", " ").replace(".", " ") }} BYN
@@ -161,7 +174,10 @@
                             </div>
                         </div>
                         <div class="space-y-1">
-                            <span class="font-medium text-slate-700 flex items-center gap-1">🏷️ Статус</span>
+                            <span class="font-medium text-slate-700 flex items-center gap-2">
+                                <i data-lucide="tag" class="w-4 h-4 text-slate-500"></i>
+                                Статус
+                            </span>
                             {% if project.status == 'Expired' %}
                                 <span class="inline-flex items-center whitespace-nowrap rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-medium text-rose-700 border border-rose-500/30">Просрочен</span>
                             {% elif project.status == 'Completed' %}
@@ -173,7 +189,10 @@
                     </div>
 
                     <div class="space-y-2">
-                        <div class="text-sm font-semibold text-slate-800 flex items-center gap-1">📝 Описание проекта</div>
+                        <div class="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="file-text" class="w-4 h-4 text-slate-500"></i>
+                            Описание проекта
+                        </div>
                         {% if project.description %}
                             <p class="text-sm text-slate-700 leading-relaxed">{{ project.description }}</p>
                         {% else %}
@@ -234,7 +253,7 @@
                 {% else %}
                     <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-6 py-10 text-center">
                         <div class="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-200/60 text-slate-400">
-                            👥
+                            <i data-lucide="users" class="w-6 h-6"></i>
                         </div>
                         <p class="mt-3 text-sm font-semibold text-slate-600">Команда пока не назначена</p>
                         <p class="mt-1 text-xs text-slate-400">

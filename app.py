@@ -236,6 +236,7 @@ def create_app() -> Flask:
     @login_required
     def index():
         from datetime import date
+        from decimal import Decimal, InvalidOperation
 
         def compute_progress_percent(p: Project, today_: date) -> int:
             if p.status == "Completed":
@@ -304,12 +305,44 @@ def create_app() -> Flask:
         active_projects.sort(key=lambda p: p.end_date or date.max)
         completed_projects.sort(key=lambda p: p.end_date or date.min, reverse=True)
 
+        project_ids = [p.id for p in all_projects if p.id is not None]
+        if project_ids:
+            employees_involved = (
+                db.session.query(ProjectAssignment.employee_id)
+                .filter(ProjectAssignment.project_id.in_(project_ids))
+                .distinct()
+                .count()
+            )
+        else:
+            employees_involved = 0
+
+        total_employees = Employee.query.count()
+
+        def _budget_to_decimal(v):
+            if v is None:
+                return Decimal("0")
+            if isinstance(v, Decimal):
+                return v
+            if isinstance(v, (int, float)):
+                return Decimal(str(v))
+            if isinstance(v, str):
+                try:
+                    return Decimal(v.replace(" ", "").replace(",", "."))
+                except (InvalidOperation, ValueError):
+                    return Decimal("0")
+            return Decimal("0")
+
+        total_budget = sum((_budget_to_decimal(p.budget) for p in all_projects), Decimal("0"))
+
         return render_template(
             "index.html",
             overdue_projects=overdue_projects,
             active_projects=active_projects,
             completed_projects=completed_projects,
             mine=mine,
+            employees_involved=employees_involved,
+            total_employees=total_employees,
+            total_budget=total_budget,
         )
 
     @app.route("/project/add", methods=["GET", "POST"])

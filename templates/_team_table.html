@@ -1,0 +1,92 @@
+{% set is_admin = current_user.role == 'Admin' %}
+
+<div class="team-skeleton htmx-indicator hidden">
+    <table class="min-w-full text-sm divide-y divide-slate-200 rounded-2xl overflow-hidden border border-slate-200 bg-white/70 shadow-sm">
+        <thead class="bg-slate-50">
+        <tr>
+            <th class="px-3 py-2 text-left font-semibold text-slate-600">ФИО</th>
+            <th class="px-3 py-2 text-left font-semibold text-slate-600">Должность</th>
+            {% if is_admin %}
+                <th class="px-3 py-2 text-right font-semibold text-slate-600">Действия</th>
+            {% endif %}
+        </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+        {% for _ in range(3) %}
+            <tr class="animate-pulse">
+                <td class="px-3 py-3">
+                    <div class="h-4 w-40 rounded bg-slate-200"></div>
+                </td>
+                <td class="px-3 py-3">
+                    <div class="h-4 w-32 rounded bg-slate-200"></div>
+                </td>
+                {% if is_admin %}
+                    <td class="px-3 py-3 text-right">
+                        <div class="ml-auto h-6 w-20 rounded bg-slate-200"></div>
+                    </td>
+                {% endif %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="team-content">
+    {% if assigned_employees %}
+        <table class="min-w-full text-sm divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+            <tr>
+                <th class="px-3 py-2 text-left font-semibold text-slate-600">ФИО</th>
+                <th class="px-3 py-2 text-left font-semibold text-slate-600">Должность</th>
+                {% if is_admin %}
+                    <th class="px-3 py-2 text-right font-semibold text-slate-600">Действия</th>
+                {% endif %}
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+            {% for member in assigned_employees %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-3 py-2 text-sm text-slate-900">
+                        {{ member.full_name }}
+                    </td>
+                    <td class="px-3 py-2 text-sm text-slate-600">
+                        {{ member.position or '-' }}
+                    </td>
+                    {% if is_admin %}
+                        <td class="px-3 py-2 text-right">
+                            <form method="post"
+                                  action="{{ url_for('unassign_employee', project_id=project.id, employee_id=member.id) }}"
+                                  hx-post="{{ url_for('unassign_employee', project_id=project.id, employee_id=member.id) }}"
+                                  hx-target="#team-table-container"
+                                  hx-swap="innerHTML"
+                                  hx-confirm="Удалить сотрудника из команды проекта?"
+                                  hx-indicator="#team-table-container .team-skeleton"
+                                  class="inline">
+                                <button type="submit"
+                                        class="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 border border-rose-200 hover:bg-rose-100">
+                                    ✕ Удалить
+                                </button>
+                            </form>
+                        </td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-6 py-10 text-center">
+            <div class="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-200/60 text-slate-400">
+                <i data-lucide="users" class="h-6 w-6"></i>
+            </div>
+            <p class="mt-3 text-sm font-semibold text-slate-600">Команда пока не назначена</p>
+            <p class="mt-1 text-xs text-slate-400">
+                {% if is_admin %}
+                    Добавьте сотрудников в команду через форму справа.
+                {% else %}
+                    Здесь появится список участников после назначения администратором.
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+</div>
+

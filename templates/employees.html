@@ -22,7 +22,9 @@
     <div class="max-w-xl">
         <label for="employee-search" class="sr-only">Поиск</label>
         <div class="relative w-72">
-            <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">🔍</span>
+            <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+                <i data-lucide="search" class="w-4 h-4"></i>
+            </span>
             <input
                 id="employee-search"
                 type="text"
@@ -83,14 +85,14 @@
                                 <a href="{{ url_for('edit_employee', id=employee.id) }}"
                                    class="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 bg-white text-[11px] text-slate-600 shadow-sm hover:bg-slate-50"
                                    title="Редактировать">
-                                    ✏️
+                                    <i data-lucide="pencil" class="w-4 h-4"></i>
                                 </a>
                                 <form action="{{ url_for('delete_employee', id=employee.id) }}" method="post" class="inline">
                                     <button type="submit"
                                             onclick="return confirm('Вы уверены, что хотите удалить этого сотрудника?');"
                                             class="inline-flex h-7 w-7 items-center justify-center rounded-full border border-rose-400 bg-rose-500/10 text-[11px] text-rose-600 shadow-sm hover:bg-rose-500/20"
                                             title="Удалить">
-                                        🗑️
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
                                     </button>
                                 </form>
                             </td>

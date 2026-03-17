@@ -13,7 +13,9 @@
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        [x-cloak] { display: none !important; }
         html, body {
             font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
@@ -52,12 +54,12 @@
            поэтому направление задаём через dropdownDirection в JS. */
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 antialiased">
+<body class="bg-[#F8FAFC] text-slate-900 antialiased">
 <div class="min-h-screen flex">
     {% set user_role = current_user.role if current_user.is_authenticated else None %}
     <!-- Sidebar -->
     {% if current_user.is_authenticated %}
-        <aside class="fixed inset-y-4 left-4 z-40 w-64 bg-slate-900/90 text-slate-100 flex flex-col rounded-2xl border border-slate-700/70 shadow-2xl backdrop-blur-xl">
+        <aside class="fixed inset-y-4 left-4 z-40 w-64 bg-slate-900/90 text-slate-100 flex flex-col rounded-2xl border border-slate-700/70 shadow-2xl backdrop-blur-md">
             <div class="px-6 py-5 border-b border-slate-700/70">
                 <h1 class="text-lg font-semibold tracking-tight">Project Tracker</h1>
                 <p class="text-xs text-slate-400 mt-1">Компания "под ключ"</p>
@@ -74,6 +76,7 @@
                     {% if request.endpoint == 'index' %}
                         <span class="absolute inset-y-1 left-0 w-1 rounded-full bg-indigo-500"></span>
                     {% endif %}
+                    <i data-lucide="folder-kanban" class="w-4 h-4 text-slate-200/90"></i>
                     <span class="text-xs uppercase tracking-wide">Проекты</span>
                 </a>
                 <a href="{{ url_for('employees') }}"
@@ -87,6 +90,7 @@
                     {% if request.endpoint == 'employees' %}
                         <span class="absolute inset-y-1 left-0 w-1 rounded-full bg-indigo-500"></span>
                     {% endif %}
+                    <i data-lucide="users" class="w-4 h-4 text-slate-200/90"></i>
                     <span class="text-xs uppercase tracking-wide">Сотрудники</span>
                 </a>
                 {% if user_role == 'Admin' %}
@@ -101,6 +105,7 @@
                         {% if request.endpoint == 'reports' %}
                             <span class="absolute inset-y-1 left-0 w-1 rounded-full bg-indigo-500"></span>
                         {% endif %}
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-slate-200/90"></i>
                         <span class="text-xs uppercase tracking-wide">Отчеты</span>
                     </a>
                 {% endif %}
@@ -290,6 +295,10 @@
             init();
         }
     })();
+</script>
+
+<script>
+    try { lucide && lucide.createIcons && lucide.createIcons(); } catch (e) {}
 </script>
 </body>
 </html>
