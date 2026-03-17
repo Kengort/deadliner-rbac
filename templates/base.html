@@ -39,6 +39,17 @@
             border-color: rgba(129, 140, 248, 1);
             background: rgba(255, 255, 255, 1);
         }
+        .ts-dropdown {
+            border-radius: 0.75rem;
+            border-color: rgba(226, 232, 240, 1);
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+            overflow: hidden;
+        }
+        .ts-dropdown .option {
+            padding: 0.5rem 0.75rem;
+        }
+        /* Примечание: dropdown Tom Select рендерится в body (dropdownParent: body),
+           поэтому направление задаём через dropdownDirection в JS. */
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 antialiased">
@@ -128,8 +139,6 @@
                              class="hidden absolute right-0 mt-2 w-56 rounded-2xl bg-white/90 backdrop-blur border border-slate-200/80 shadow-xl overflow-hidden">
                             <a href="{{ url_for('settings') }}"
                                class="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50">Настройки</a>
-                            <a href="{{ url_for('settings') }}#avatar"
-                               class="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50">Сменить аватар</a>
                             <a href="{{ url_for('logout') }}"
                                class="block px-4 py-3 text-sm text-rose-700 hover:bg-rose-50">Выйти</a>
                         </div>
@@ -160,7 +169,7 @@
             {% if messages %}
                 <div class="fixed right-6 top-6 z-50 space-y-3">
                     {% for category, message in messages %}
-                        <div class="pointer-events-auto flex max-w-sm items-start gap-3 rounded-2xl bg-slate-900/90 px-4 py-3 text-sm text-slate-50 shadow-2xl backdrop-blur-xl border border-slate-700/80">
+                        <div class="toast pointer-events-auto flex max-w-sm items-start gap-3 rounded-2xl bg-slate-900/90 px-4 py-3 text-sm text-slate-50 shadow-2xl backdrop-blur-xl border border-slate-700/80 transition-opacity duration-300">
                             <div class="mt-0.5">
                                 {% if category == 'success' %}
                                     <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs">✓</span>
@@ -173,6 +182,11 @@
                             <div class="flex-1">
                                 <p class="font-medium text-slate-50">{{ message }}</p>
                             </div>
+                            <button type="button"
+                                    class="toast-close -mr-1 -mt-1 inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-300 hover:text-white hover:bg-white/10 transition"
+                                    aria-label="Закрыть уведомление">
+                                ✕
+                            </button>
                         </div>
                     {% endfor %}
                 </div>
@@ -190,17 +204,83 @@
             document.querySelectorAll('.search-select').forEach((el) => {
                 if (el.tomselect) return;
                 const noResultsText = "Сотрудник не найден";
-                new TomSelect(el, {
+                const dropdownDirection = el.dataset.dropdownDirection || undefined;
+                const ts = new TomSelect(el, {
                     create: false,
                     sortField: { field: "text", order: "asc" },
                     placeholder: "Начните вводить имя...",
                     dropdownParent: "body",
+                    dropdownDirection: dropdownDirection,
                     render: {
                         no_results: function () {
                             return '<div class="no-results px-3 py-2 text-sm text-slate-500">' + noResultsText + '</div>';
                         }
                     }
                 });
+
+                // Жестко позиционируем dropdown вверх (для случаев, когда библиотека игнорирует dropdownDirection)
+                if (dropdownDirection === 'up') {
+                    const positionUp = () => {
+                        try {
+                            const control = ts.control;
+                            const dropdown = ts.dropdown;
+                            if (!control || !dropdown) return;
+
+                            // ensure in body for absolute positioning
+                            dropdown.style.position = 'absolute';
+                            dropdown.style.zIndex = '9999';
+
+                            const rect = control.getBoundingClientRect();
+                            const scrollX = window.pageXOffset || document.documentElement.scrollLeft || 0;
+                            const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+
+                            // show temporarily to measure height
+                            const prevDisplay = dropdown.style.display;
+                            dropdown.style.display = 'block';
+                            const h = dropdown.offsetHeight || 0;
+                            dropdown.style.display = prevDisplay;
+
+                            const top = rect.top + scrollY - h - 5;
+                            dropdown.style.left = (rect.left + scrollX) + 'px';
+                            dropdown.style.top = Math.max(8, top) + 'px';
+                            dropdown.style.width = rect.width + 'px';
+                        } catch (e) {
+                            // no-op
+                        }
+                    };
+
+                    ts.on('dropdown_open', () => {
+                        requestAnimationFrame(positionUp);
+                        setTimeout(positionUp, 0);
+                    });
+                    window.addEventListener('resize', () => {
+                        if (ts.isOpen) positionUp();
+                    });
+                    window.addEventListener('scroll', () => {
+                        if (ts.isOpen) positionUp();
+                    }, { passive: true });
+                }
+            });
+
+            if (window.flatpickr) {
+                flatpickr(".datepicker", {
+                    dateFormat: "d.m.Y",
+                    allowInput: true,
+                    locale: "ru"
+                });
+            }
+
+            // Auto-dismiss flash toasts
+            const dismiss = (toast) => {
+                if (!toast || toast.classList.contains('opacity-0')) return;
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 350);
+            };
+
+            document.querySelectorAll('.toast').forEach((toast) => {
+                setTimeout(() => dismiss(toast), 5000);
+                const btn = toast.querySelector('.toast-close');
+                if (btn) btn.addEventListener('click', () => dismiss(toast));
             });
         };
 
