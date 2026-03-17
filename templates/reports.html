@@ -21,13 +21,21 @@
         <form method="get" class="grid gap-3 sm:grid-cols-4 items-end">
             <div>
                 <label class="block text-xs font-medium text-slate-600">Период от</label>
-                <input type="date" name="date_from" value="{{ filters.date_from }}"
-                       class="mt-1 w-full h-10 rounded-xl border border-transparent bg-slate-50 px-3 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+                <div class="relative mt-1">
+                    <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">📅</span>
+                    <input type="text" inputmode="numeric" name="date_from" value="{{ filters.date_from }}"
+                           placeholder="ДД.ММ.ГГГГ"
+                           class="w-full h-10 rounded-xl border border-transparent bg-slate-50 pl-10 pr-3 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+                </div>
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-600">Период до</label>
-                <input type="date" name="date_to" value="{{ filters.date_to }}"
-                       class="mt-1 w-full h-10 rounded-xl border border-transparent bg-slate-50 px-3 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+                <div class="relative mt-1">
+                    <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">📅</span>
+                    <input type="text" inputmode="numeric" name="date_to" value="{{ filters.date_to }}"
+                           placeholder="ДД.ММ.ГГГГ"
+                           class="w-full h-10 rounded-xl border border-transparent bg-slate-50 pl-10 pr-3 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+                </div>
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-600">Статус</label>
@@ -42,10 +50,11 @@
             <div>
                 <label class="block text-xs font-medium text-slate-600">Ответственный</label>
                 <select name="responsible_id"
-                        class="mt-1 w-full h-10 rounded-xl border border-transparent bg-slate-50 px-3 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+                        id="responsible_id"
+                        class="search-select mt-1 w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
                     <option value="">Все</option>
                     {% for e in employees %}
-                        <option value="{{ e.id }}" {% if filters.responsible_id|int == e.id %}selected{% endif %}>
+                        <option value="{{ e.id }}" data-name="{{ e.full_name|lower }}" {% if filters.responsible_id|int == e.id %}selected{% endif %}>
                             {{ e.full_name }}
                         </option>
                     {% endfor %}
@@ -150,5 +159,22 @@
         {% endif %}
     </section>
 </div>
+
+<script>
+    (function () {
+        const initDates = () => {
+            if (!window.flatpickr) return;
+            const cfg = { dateFormat: "d.m.Y", allowInput: true, locale: "ru" };
+            flatpickr('input[name="date_from"]', cfg);
+            flatpickr('input[name="date_to"]', cfg);
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => { initDates(); });
+        } else {
+            initDates();
+        }
+    })();
+</script>
 {% endblock %}
 
