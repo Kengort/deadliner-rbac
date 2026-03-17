@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.title }} — Детали проекта{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+    {% set is_admin = current_user.role == 'Admin' %}
+    {% set is_worker = current_user.role != 'Admin' %}
+    <section class="bg-white/80 rounded-2xl border border-slate-200/80 p-6 shadow-lg backdrop-blur">
+        {% if is_admin %}
+            <form method="post" class="space-y-6" id="project-edit-form">
+                <header class="flex items-start justify-between gap-4">
+                    <div class="space-y-3 flex-1">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex-1">
+                                <input
+                                    type="text"
+                                    name="title"
+                                    value="{{ project.title if project else '' }}"
+                                    class="w-full bg-transparent rounded-xl px-0 py-1 text-2xl font-semibold text-slate-900 focus:bg-transparent border border-transparent focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 focus:outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="grid gap-4 text-sm text-slate-600 md:grid-cols-2">
+                            <div class="space-y-1">
+                                <span class="font-medium text-slate-700 flex items-center gap-1">📅 Сроки</span>
+                                <div class="flex items-center gap-2">
+                                    <input
+                                        type="date"
+                                        name="start_date"
+                                        value="{{ project.start_date.strftime('%Y-%m-%d') if project and project.start_date else '' }}"
+                                        class="w-1/2 rounded-xl border border-transparent bg-slate-50 px-3 py-1 text-xs text-slate-700 shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
+                                    />
+                                    <span class="text-xs text-slate-400">—</span>
+                                    <input
+                                        type="date"
+                                        name="end_date"
+                                        value="{{ project.end_date.strftime('%Y-%m-%d') if project and project.end_date else '' }}"
+                                        class="w-1/2 rounded-xl border border-transparent bg-slate-50 px-3 py-1 text-xs text-slate-700 shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
+                                    />
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <span class="font-medium text-slate-700 flex items-center gap-1">💰 Бюджет</span>
+                                <input
+                                    type="number"
+                                    name="budget"
+                                    step="0.01"
+                                    min="0"
+                                    value="{{ project.budget if project and project.budget is not none else '' }}"
+                                    class="w-full rounded-xl border border-transparent bg-slate-50 px-3 py-1.5 text-sm text-slate-700 shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
+                                />
+                                <p class="text-[11px] text-slate-400 mt-1">BYN</p>
+                            </div>
+                            <div class="space-y-1">
+                                <span class="font-medium text-slate-700 flex items-center gap-1">🏷️ Статус</span>
+                                <select
+                                    id="project-status"
+                                    name="status"
+                                    class="w-full rounded-xl border border-transparent bg-slate-50 px-3 py-1.5 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10
+                                           {% if project and project.status == 'Expired' %}text-rose-700{% elif project and project.status == 'Completed' %}text-emerald-700{% else %}text-slate-700{% endif %}"
+                                >
+                                    <option value="In Progress" {% if not project or project.status == 'In Progress' %}selected{% endif %}>In Progress (В работе)</option>
+                                    <option value="Completed" {% if project and project.status == 'Completed' %}selected{% endif %}>Completed (Завершен)</option>
+                                    <option value="Expired" {% if project and project.status == 'Expired' %}selected{% endif %}>Expired (Просрочен)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-slate-800 flex items-center gap-1">
+                                📝 Описание проекта
+                            </label>
+                            <textarea
+                                name="description"
+                                rows="4"
+                                class="w-full rounded-2xl border border-transparent bg-slate-50 px-3 py-2 text-sm text-slate-700 shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
+                            >{{ project.description or '' }}</textarea>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-3">
+                        <a href="{{ url_for('index') }}"
+                           class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">
+                            Назад к проектам
+                        </a>
+                        <div class="flex items-center gap-2 mt-auto">
+                            <button type="submit"
+                                    id="save-changes"
+                                    class="inline-flex items-center rounded-full bg-indigo-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1">
+                                Сохранить изменения
+                            </button>
+                        </div>
+                    </div>
+                </header>
+            </form>
+        {% else %}
+            <header class="flex items-start justify-between gap-4">
+                <div class="space-y-3 flex-1">
+                    <h2 class="text-2xl font-semibold text-slate-900">{{ project.title }}</h2>
+
+                    <div class="grid gap-4 text-sm text-slate-600 md:grid-cols-2">
+                        <div class="space-y-1">
+                            <span class="font-medium text-slate-700 flex items-center gap-1">📅 Сроки</span>
+                            <div class="text-sm text-slate-700">
+                                {% if project.start_date %}{{ project.start_date.strftime('%d.%m.%Y') }}{% else %}—{% endif %}
+                                —
+                                {% if project.end_date %}{{ project.end_date.strftime('%d.%m.%Y') }}{% else %}—{% endif %}
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <span class="font-medium text-slate-700 flex items-center gap-1">💰 Бюджет</span>
+                            <div class="text-sm font-medium text-slate-900">
+                                {% if project.budget is not none %}
+                                    {{ "{:,.0f}".format(project.budget).replace(",", " ").replace(".", " ") }} BYN
+                                {% else %}
+                                    <span class="text-slate-400">без бюджета</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <span class="font-medium text-slate-700 flex items-center gap-1">🏷️ Статус</span>
+                            {% if project.status == 'Expired' %}
+                                <span class="inline-flex items-center whitespace-nowrap rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-medium text-rose-700 border border-rose-500/30">Просрочен</span>
+                            {% elif project.status == 'Completed' %}
+                                <span class="inline-flex items-center whitespace-nowrap rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-500/30">Завершен</span>
+                            {% else %}
+                                <span class="inline-flex items-center whitespace-nowrap rounded-full bg-amber-400/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-700 border border-amber-400/40">В работе</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="text-sm font-semibold text-slate-800 flex items-center gap-1">📝 Описание проекта</div>
+                        {% if project.description %}
+                            <p class="text-sm text-slate-700 leading-relaxed">{{ project.description }}</p>
+                        {% else %}
+                            <p class="text-sm text-slate-400">Описание не задано.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex flex-col items-end gap-3">
+                    <a href="{{ url_for('index') }}"
+                       class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">
+                        Назад к проектам
+                    </a>
+                </div>
+            </header>
+        {% endif %}
+    </section>
+
+    <section class="space-y-4">
+        <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-800">Команда проекта</h3>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-[2fr,1.2fr]">
+            <div class="bg-white/80 rounded-2xl border border-slate-200/80 p-4 shadow-lg backdrop-blur">
+                {% if assigned_employees %}
+                    <table class="min-w-full text-sm divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-3 py-2 text-left font-semibold text-slate-600">ФИО</th>
+                            <th class="px-3 py-2 text-left font-semibold text-slate-600">Должность</th>
+                            {% if is_admin %}
+                                <th class="px-3 py-2 text-right font-semibold text-slate-600">Действия</th>
+                            {% endif %}
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                        {% for member in assigned_employees %}
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-3 py-2 text-sm text-slate-900">
+                                    {{ member.full_name }}
+                                </td>
+                                <td class="px-3 py-2 text-sm text-slate-600">
+                                    {{ member.position or '-' }}
+                                </td>
+                                {% if is_admin %}
+                                    <td class="px-3 py-2 text-right">
+                                        <form method="post"
+                                              action="{{ url_for('unassign_employee', project_id=project.id, employee_id=member.id) }}"
+                                              class="inline">
+                                            <button type="submit"
+                                                    onclick="return confirm('Удалить сотрудника из команды проекта?');"
+                                                    class="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 border border-rose-200 hover:bg-rose-100">
+                                                ✕ Удалить
+                                            </button>
+                                        </form>
+                                    </td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="flex flex-col items-center justify-center py-10 text-slate-400">
+                        <div class="mb-3 text-4xl">👥</div>
+                        <p class="text-sm font-medium">Команда пока не назначена</p>
+                        <p class="mt-1 text-xs text-slate-400">Добавьте сотрудников через форму справа.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="bg-white/80 rounded-2xl border border-slate-200/80 p-4 shadow-lg backdrop-blur">
+                <h4 class="text-sm font-semibold text-slate-800 mb-3">Добавить сотрудника</h4>
+                {% if is_admin and available_employees %}
+                    <form method="post" action="{{ url_for('assign_employee', id=project.id) }}" class="space-y-3">
+                        <div>
+                            <label for="member-search" class="sr-only">Поиск сотрудника</label>
+                            <div class="relative">
+                                <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">🔍</span>
+                                <input
+                                    id="member-search"
+                                    type="text"
+                                    placeholder="Найти сотрудника…"
+                                    class="w-full rounded-xl border border-transparent bg-white px-10 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label for="employee_id" class="block text-sm font-medium text-slate-700">
+                                Выберите сотрудника
+                            </label>
+                            <select id="employee_id" name="employee_id" required
+                                    class="mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/20">
+                                <option value="">— Выберите из списка —</option>
+                                {% for employee in available_employees %}
+                                    <option value="{{ employee.id }}">
+                                        {{ employee.full_name }}{% if employee.position %} — {{ employee.position }}{% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit"
+                                class="inline-flex items-center rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1">
+                            Добавить в команду
+                        </button>
+                    </form>
+                {% else %}
+                    <p class="text-sm text-slate-500">
+                        {% if not is_admin %}
+                            Недостаточно прав для изменения команды проекта.
+                        {% else %}
+                            Все сотрудники уже назначены на этот проект или список сотрудников пуст.
+                        {% endif %}
+                    </p>
+                    <p class="mt-1 text-xs text-slate-400">
+                        Добавьте новых сотрудников в разделе «Сотрудники».
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+    (function () {
+        // Цвет текста для select статуса
+        const status = document.getElementById('project-status');
+        if (status) {
+            const apply = () => {
+                status.classList.remove('text-rose-700', 'text-emerald-700', 'text-slate-700');
+                if (status.value === 'Expired') status.classList.add('text-rose-700');
+                else if (status.value === 'Completed') status.classList.add('text-emerald-700');
+                else status.classList.add('text-slate-700');
+            };
+            status.addEventListener('change', apply);
+            apply();
+        }
+
+        // Поиск по сотрудникам в select назначения
+        const input = document.getElementById('member-search');
+        const select = document.getElementById('employee_id');
+        if (input && select) {
+            const norm = (s) => (s || '').toString().toLowerCase().trim();
+            const options = Array.from(select.options);
+
+            input.addEventListener('input', () => {
+                const q = norm(input.value);
+                options.forEach((opt, idx) => {
+                    if (idx === 0) return; // placeholder
+                    const text = norm(opt.text);
+                    opt.hidden = Boolean(q) && !text.includes(q);
+                });
+
+                // если выбран скрытый — сбрасываем на placeholder
+                if (select.selectedIndex > 0 && select.options[select.selectedIndex].hidden) {
+                    select.selectedIndex = 0;
+                }
+            });
+        }
+    })();
+</script>
+{% endblock %}
+

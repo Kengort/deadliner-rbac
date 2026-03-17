@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if mode == 'edit' %}Редактирование сотрудника{% else %}Новый сотрудник{% endif %} — Учет проектов
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <header class="flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-semibold text-slate-900">
+                {% if mode == 'edit' %}Редактирование сотрудника{% else %}Новый сотрудник{% endif %}
+            </h2>
+            <p class="text-sm text-slate-500 mt-1">
+                {% if mode == 'edit' %}
+                    Измените данные сотрудника и сохраните изменения.
+                {% else %}
+                    Заполните форму, чтобы добавить нового сотрудника.
+                {% endif %}
+            </p>
+        </div>
+        <a href="{{ url_for('employees') }}"
+           class="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">
+            Назад к списку
+        </a>
+    </header>
+
+    <form method="post" class="space-y-6 bg-white/90 rounded-2xl border border-slate-200/80 p-6 shadow-lg backdrop-blur">
+        <div class="space-y-4">
+            <div>
+                <label for="full_name" class="block text-sm font-medium text-slate-700">ФИО</label>
+                <input type="text" id="full_name" name="full_name" required
+                       value="{{ employee.full_name if employee else '' }}"
+                       class="mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+            </div>
+
+            <div>
+                <label for="position" class="block text-sm font-medium text-slate-700">Должность</label>
+                <input type="text" id="position" name="position"
+                       value="{{ employee.position if employee and employee.position else '' }}"
+                       class="mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+            </div>
+
+            <div>
+                <label for="email" class="block text-sm font-medium text-slate-700">Email</label>
+                <input type="email" id="email" name="email"
+                       value="{{ employee.email if employee and employee.email else '' }}"
+                       class="mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
+                       placeholder="name@example.com">
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3">
+            <a href="{{ url_for('employees') }}"
+               class="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">
+                Отмена
+            </a>
+            <button type="submit"
+                    class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1">
+                {% if mode == 'edit' %}Сохранить изменения{% else %}Добавить сотрудника{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

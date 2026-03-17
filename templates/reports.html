@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Отчеты — Учет проектов{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+    <header class="flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-semibold text-slate-900">Отчеты</h2>
+            <p class="text-sm text-slate-500 mt-1">
+                Сводная статистика по выполненным проектам.
+            </p>
+        </div>
+        <a href="{{ url_for('export_reports') }}"
+           class="inline-flex items-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:from-emerald-600 hover:to-teal-700 transition">
+            <span class="mr-2">📄</span> Скачать отчет в CSV
+        </a>
+    </header>
+
+    <section class="grid gap-4 sm:grid-cols-3">
+        <div class="rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-500 to-indigo-700 p-[1px] shadow-lg">
+            <div class="h-full rounded-2xl bg-slate-900/95 px-4 py-4">
+                <p class="text-xs font-medium uppercase tracking-wide text-indigo-200/80">Всего проектов</p>
+                <p class="mt-3 text-3xl font-semibold text-white">{{ total_projects }}</p>
+            </div>
+        </div>
+        <div class="rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-400 to-emerald-600 p-[1px] shadow-lg">
+            <div class="h-full rounded-2xl bg-slate-900/95 px-4 py-4">
+                <p class="text-xs font-medium uppercase tracking-wide text-emerald-100/90">Завершено</p>
+                <p class="mt-3 text-3xl font-semibold text-emerald-100">{{ completed_count }}</p>
+            </div>
+        </div>
+        <div class="rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-purple-600 p-[1px] shadow-lg">
+            <div class="h-full rounded-2xl bg-slate-900/95 px-4 py-4">
+                <p class="text-xs font-medium uppercase tracking-wide text-violet-100/90">Общий бюджет (BYN)</p>
+                <p class="mt-3 text-3xl font-semibold text-violet-100">
+                    {{ "{:,.2f}".format(total_completed_budget).replace(",", " ").replace(".", ",") }} BYN
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="space-y-3">
+        <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-800">Завершенные проекты</h3>
+        </div>
+
+        {% if completed_projects %}
+            <div class="overflow-hidden rounded-xl bg-white shadow-sm border border-slate-200">
+                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left font-semibold text-slate-600">Название</th>
+                        <th class="px-4 py-3 text-right font-semibold text-slate-600">Дата начала</th>
+                        <th class="px-4 py-3 text-right font-semibold text-slate-600">Дата окончания</th>
+                        <th class="px-4 py-3 text-right font-semibold text-slate-600">Бюджет</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                    {% for project in completed_projects %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-4 py-3">
+                                <a href="{{ url_for('project_details', id=project.id) }}"
+                                   class="font-medium text-slate-900 hover:text-sky-700">
+                                    {{ project.title }}
+                                </a>
+                            </td>
+                            <td class="px-4 py-3 text-right text-sm text-slate-600">
+                                {% if project.start_date %}{{ project.start_date.strftime('%d.%m.%Y') }}{% else %}—{% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-right text-sm text-slate-600">
+                                {% if project.end_date %}{{ project.end_date.strftime('%d.%m.%Y') }}{% else %}—{% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-right text-sm text-slate-700">
+                                {% if project.budget is not none %}
+                                    {{ "{:,.2f}".format(project.budget).replace(",", " ").replace(".", ",") }} BYN
+                                {% else %}
+                                    <span class="text-slate-400">не указан</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+                <h3 class="text-lg font-semibold text-slate-800">Нет завершенных проектов</h3>
+                <p class="mt-2 text-sm text-slate-500">
+                    Как только проекты будут завершаться, они появятся в этом отчете.
+                </p>
+            </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
+

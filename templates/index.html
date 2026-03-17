@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+
+{% block title %}Проекты — Учет проектов{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+    {% if current_user.role == 'Admin' %}
+        <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 class="text-2xl font-semibold text-slate-900">Проекты</h2>
+                <p class="text-sm text-slate-500 mt-1">
+                    Список проектов компании с основными показателями.
+                </p>
+            </div>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div class="relative w-72">
+                    <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">🔍</span>
+                    <input
+                        id="project-search"
+                        type="text"
+                        placeholder="Поиск по названию…"
+                        class="w-full rounded-xl border border-transparent bg-white/70 backdrop-blur px-10 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
+                    />
+                </div>
+                <a href="{{ url_for('add_project') }}"
+                   class="inline-flex items-center justify-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md hover:bg-indigo-700 transition">
+                    <span class="mr-1">+</span> Новый проект
+                </a>
+            </div>
+        </header>
+    {% else %}
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <label class="inline-flex items-center gap-2 text-xs text-slate-600 bg-white/70 backdrop-blur rounded-xl px-3 py-2 shadow-sm w-fit">
+                <input type="checkbox" id="only-mine" class="rounded border-slate-300" {% if mine %}checked{% endif %}>
+                <span>Только мои проекты</span>
+            </label>
+            <div class="relative w-72">
+                <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">🔍</span>
+                <input
+                    id="project-search"
+                    type="text"
+                    placeholder="Поиск по названию…"
+                    class="w-full rounded-xl border border-transparent bg-white/70 backdrop-blur px-10 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
+                />
+            </div>
+        </div>
+    {% endif %}
+
+    {% set total_count = (overdue_projects|length) + (active_projects|length) + (completed_projects|length) %}
+    {% if total_count > 0 %}
+        <div id="project-no-results" class="hidden rounded-2xl border border-dashed border-slate-300 bg-white/70 backdrop-blur px-6 py-10 text-center">
+            <h3 class="text-lg font-semibold text-slate-800">Ничего не найдено</h3>
+            <p class="mt-2 text-sm text-slate-500">Попробуйте изменить запрос.</p>
+        </div>
+
+        <!-- Overdue -->
+        <section class="space-y-3">
+            <div class="flex items-end justify-between">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-sm font-semibold text-red-600">🔴 Просрочено</h3>
+                    <span class="text-xs text-slate-500">({{ overdue_projects|length }})</span>
+                </div>
+            </div>
+
+            {% if overdue_projects %}
+                <div class="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    {% for project in overdue_projects %}
+                        <div class="group relative flex h-full flex-col rounded-2xl border border-red-200/60 bg-overdue p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl project-card" data-project-title="{{ project.title|lower }}">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="space-y-1 h-12 overflow-hidden">
+                                    <a href="{{ url_for('project_details', id=project.id) }}"
+                                       class="text-base font-semibold text-slate-900 hover:text-indigo-600 transition">
+                                        {{ project.title }}
+                                    </a>
+                                    {% if project.description %}
+                                        <p class="text-xs text-slate-600 line-clamp-2">
+                                            {{ project.description }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                                <span class="inline-flex items-center whitespace-nowrap rounded-full bg-red-500/10 px-2.5 py-0.5 text-[10px] font-medium text-red-700 border border-red-500/30">
+                                    Просрочено
+                                </span>
+                            </div>
+
+                            <div class="mt-3 text-xs text-slate-600">
+                                <div class="grid grid-cols-2 gap-2 w-full">
+                                    <div class="inline-flex items-center gap-1.5">
+                                        <span class="text-xs">⚠️</span>
+                                        <span>
+                                            {% if project.end_date %}{{ project.end_date.strftime('%d.%m.%Y') }}{% else %}дедлайн не задан{% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="inline-flex items-center justify-end gap-1.5 font-medium text-slate-900">
+                                        <span class="text-xs">💰</span>
+                                        {% if project.budget is not none %}
+                                            <span>{{ "{:,.0f}".format(project.budget).replace(",", " ").replace(".", " ") }} BYN</span>
+                                        {% else %}
+                                            <span class="text-slate-500">без бюджета</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-auto pt-4 flex items-center justify-between">
+                                <div class="flex -space-x-2 min-h-[2rem] items-center">
+                                    {% if project.assignments %}
+                                        {% for assignment in project.assignments[:4] %}
+                                            {% set parts = assignment.employee.full_name.split() %}
+                                            {% set initials = parts[0][0] ~ (parts[-1][0] if parts|length > 1 else '') %}
+                                            <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-indigo-500 text-[11px] font-semibold text-white shadow-sm">
+                                                {{ initials }}
+                                            </div>
+                                        {% endfor %}
+                                        {% if project.assignments|length > 4 %}
+                                            <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-slate-200 text-[11px] font-semibold text-slate-700">
+                                                +{{ project.assignments|length - 4 }}
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-[11px] text-slate-500">Команда не назначена</span>
+                                    {% endif %}
+                                </div>
+                                {% if current_user.role == 'Admin' %}
+                                    <a href="{{ url_for('project_details', id=project.id) }}"
+                                       class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-[12px] text-slate-700 shadow-sm hover:bg-white"
+                                       title="Редактировать">
+                                        ✏️
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-slate-500">Нет просроченных проектов.</p>
+            {% endif %}
+        </section>
+
+        <!-- Active -->
+        <section class="space-y-3">
+            <div class="flex items-end justify-between">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-sm font-semibold text-amber-600">🟡 В работе</h3>
+                    <span class="text-xs text-slate-500">({{ active_projects|length }})</span>
+                </div>
+            </div>
+
+            {% if active_projects %}
+                <div class="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    {% for project in active_projects %}
+                        <div class="group relative flex h-full flex-col rounded-2xl border border-slate-200/60 bg-white/90 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl project-card" data-project-title="{{ project.title|lower }}">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="space-y-1 h-12 overflow-hidden">
+                                    <a href="{{ url_for('project_details', id=project.id) }}"
+                                       class="text-base font-semibold text-slate-900 hover:text-indigo-600 transition">
+                                        {{ project.title }}
+                                    </a>
+                                    {% if project.description %}
+                                        <p class="text-xs text-slate-500 line-clamp-2">
+                                            {{ project.description }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                                <span class="inline-flex items-center whitespace-nowrap rounded-full bg-amber-400/10 px-2.5 py-0.5 text-[10px] font-medium text-amber-700 border border-amber-400/40">
+                                    В работе
+                                </span>
+                            </div>
+
+                            <div class="mt-3 text-xs text-slate-500">
+                                <div class="grid grid-cols-2 gap-2 w-full">
+                                    <div class="inline-flex items-center gap-1.5">
+                                        <span class="text-xs">📅</span>
+                                        <span>
+                                            {% if project.start_date %}{{ project.start_date.strftime('%d.%m.%Y') }}{% endif %}
+                                            —
+                                            {% if project.end_date %}{{ project.end_date.strftime('%d.%m.%Y') }}{% else %}не задано{% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="inline-flex items-center justify-end gap-1.5 font-medium text-slate-800">
+                                        <span class="text-xs">💰</span>
+                                        {% if project.budget is not none %}
+                                            <span>{{ "{:,.0f}".format(project.budget).replace(",", " ").replace(".", " ") }} BYN</span>
+                                        {% else %}
+                                            <span class="text-slate-400">без бюджета</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4">
+                                <div class="flex items-center justify-between mb-1 text-[11px] text-slate-500">
+                                    <span>Готовность</span>
+                                    <span>{{ project.progress_percent }}%</span>
+                                </div>
+                                <div class="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                                    <div class="h-full rounded-full animate-pulse {{ project.urgency_bar_class }}"
+                                         style="width: {{ project.progress_percent }}%;"></div>
+                                </div>
+                            </div>
+
+                            <div class="mt-auto pt-4 flex items-center justify-between">
+                                <div class="flex -space-x-2 min-h-[2rem] items-center">
+                                    {% if project.assignments %}
+                                        {% for assignment in project.assignments[:4] %}
+                                            {% set parts = assignment.employee.full_name.split() %}
+                                            {% set initials = parts[0][0] ~ (parts[-1][0] if parts|length > 1 else '') %}
+                                            <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-indigo-500 text-[11px] font-semibold text-white shadow-sm">
+                                                {{ initials }}
+                                            </div>
+                                        {% endfor %}
+                                        {% if project.assignments|length > 4 %}
+                                            <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-slate-200 text-[11px] font-semibold text-slate-700">
+                                                +{{ project.assignments|length - 4 }}
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-[11px] text-slate-400">Команда не назначена</span>
+                                    {% endif %}
+                                </div>
+                                {% if current_user.role == 'Admin' %}
+                                    <a href="{{ url_for('project_details', id=project.id) }}"
+                                       class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-[12px] text-slate-700 shadow-sm hover:bg-slate-50"
+                                       title="Редактировать">
+                                        ✏️
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-slate-500">Нет проектов в работе.</p>
+            {% endif %}
+        </section>
+
+        <!-- Completed -->
+        <section class="space-y-3">
+            <div class="flex items-end justify-between">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-sm font-semibold text-emerald-600">🟢 Завершено</h3>
+                    <span class="text-xs text-slate-500">({{ completed_projects|length }})</span>
+                </div>
+            </div>
+
+            {% if completed_projects %}
+                <div class="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    {% for project in completed_projects %}
+                        <div class="group relative flex h-full flex-col rounded-2xl border border-slate-200/60 bg-emerald-50/20 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl project-card" data-project-title="{{ project.title|lower }}">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="space-y-1 h-12 overflow-hidden">
+                                    <a href="{{ url_for('project_details', id=project.id) }}"
+                                       class="text-base font-semibold text-slate-900 hover:text-indigo-600 transition">
+                                        {{ project.title }}
+                                    </a>
+                                    {% if project.description %}
+                                        <p class="text-xs text-slate-500 line-clamp-2">
+                                            {{ project.description }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                                <span class="inline-flex items-center whitespace-nowrap rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-medium text-emerald-700 border border-emerald-500/30">
+                                    Завершен
+                                </span>
+                            </div>
+
+                            <div class="mt-3 text-xs text-slate-500">
+                                <div class="grid grid-cols-2 gap-2 w-full">
+                                    <div class="inline-flex items-center gap-1.5">
+                                        <span class="text-xs">📅</span>
+                                        <span>
+                                            {% if project.end_date %}{{ project.end_date.strftime('%d.%m.%Y') }}{% else %}—{% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="inline-flex items-center justify-end gap-1.5 font-medium text-slate-800">
+                                        <span class="text-xs">💰</span>
+                                        {% if project.budget is not none %}
+                                            <span>{{ "{:,.0f}".format(project.budget).replace(",", " ").replace(".", " ") }} BYN</span>
+                                        {% else %}
+                                            <span class="text-slate-400">без бюджета</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 inline-flex items-center gap-2 text-xs font-medium text-emerald-700">
+                                <span>✅</span>
+                                <span>Проект сдан</span>
+                            </div>
+
+                            <div class="mt-auto pt-4 flex items-center justify-between">
+                                <div class="flex -space-x-2 min-h-[2rem] items-center">
+                                    {% if project.assignments %}
+                                        {% for assignment in project.assignments[:4] %}
+                                            {% set parts = assignment.employee.full_name.split() %}
+                                            {% set initials = parts[0][0] ~ (parts[-1][0] if parts|length > 1 else '') %}
+                                            <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-indigo-500 text-[11px] font-semibold text-white shadow-sm">
+                                                {{ initials }}
+                                            </div>
+                                        {% endfor %}
+                                        {% if project.assignments|length > 4 %}
+                                            <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-slate-200 text-[11px] font-semibold text-slate-700">
+                                                +{{ project.assignments|length - 4 }}
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-[11px] text-slate-400">Команда не назначена</span>
+                                    {% endif %}
+                                </div>
+                                {% if current_user.role == 'Admin' %}
+                                    <a href="{{ url_for('project_details', id=project.id) }}"
+                                       class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-[12px] text-slate-700 shadow-sm hover:bg-slate-50"
+                                       title="Редактировать">
+                                        ✏️
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-slate-500">Нет завершенных проектов.</p>
+            {% endif %}
+        </section>
+
+    {% else %}
+        <div class="rounded-2xl border border-dashed border-slate-300 bg-white/70 backdrop-blur px-6 py-10 text-center">
+            {% if current_user.role == 'Worker' and mine %}
+                <h3 class="text-lg font-semibold text-slate-800">Проекты не найдены</h3>
+                <p class="mt-2 text-sm text-slate-500">
+                    У вас пока нет проектов, где вы назначены в команду.
+                </p>
+            {% else %}
+                <h3 class="text-lg font-semibold text-slate-800">Список проектов пуст</h3>
+                <p class="mt-2 text-sm text-slate-500">
+                    Добавьте первый проект, чтобы начать вести учет выполненных работ компании.
+                </p>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    (function () {
+        const input = document.getElementById('project-search');
+        const cards = Array.from(document.querySelectorAll('.project-card'));
+        const empty = document.getElementById('project-no-results');
+        if (!input || !cards.length) return;
+
+        const norm = (s) => (s || '').toString().toLowerCase().trim();
+
+        input.addEventListener('input', () => {
+            const q = norm(input.value);
+            cards.forEach((card) => {
+                const title = norm(card.getAttribute('data-project-title') || '');
+                card.classList.toggle('hidden', q && !title.includes(q));
+            });
+
+            if (empty) {
+                const anyVisible = cards.some((c) => !c.classList.contains('hidden'));
+                empty.classList.toggle('hidden', anyVisible);
+            }
+        });
+    })();
+</script>
+
+{% if current_user.role == 'Worker' %}
+<script>
+    (function () {
+        const cb = document.getElementById('only-mine');
+        if (!cb) return;
+        const params = new URLSearchParams(window.location.search);
+        cb.addEventListener('change', () => {
+            if (cb.checked) params.set('mine', '1'); else params.delete('mine');
+            window.location.search = params.toString();
+        });
+    })();
+</script>
+{% endif %}
+{% endblock %}
+

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль — Project Tracker{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+    <header class="flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-semibold text-slate-900">Профиль</h2>
+            <p class="text-sm text-slate-500 mt-1">Настройки аккаунта и аватар.</p>
+        </div>
+    </header>
+
+    <section id="avatar" class="bg-white/80 rounded-2xl border border-slate-200/80 p-6 shadow-lg backdrop-blur">
+        <h3 class="text-sm font-semibold text-slate-800 mb-4">Сменить аватар</h3>
+
+        <div class="flex items-center gap-4">
+            {% if current_user.avatar_filename %}
+                <img class="h-16 w-16 rounded-full object-cover border border-slate-200"
+                     src="{{ url_for('static', filename='avatars/' ~ current_user.avatar_filename) }}"
+                     alt="avatar">
+            {% else %}
+                <img class="h-16 w-16 rounded-full object-cover border border-slate-200"
+                     src="https://ui-avatars.com/api/?name={{ current_user.full_name|urlencode }}&background=6366f1&color=fff"
+                     alt="avatar">
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data" class="space-y-3">
+                <input type="file" name="avatar" accept="image/png,image/jpeg,image/webp"
+                       class="block text-sm text-slate-600 file:mr-4 file:rounded-xl file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-700">
+                <button type="submit"
+                        class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md hover:bg-indigo-700">
+                    Загрузить
+                </button>
+            </form>
+        </div>
+        <p class="mt-4 text-xs text-slate-500">Поддерживаемые форматы: PNG, JPG, WEBP.</p>
+    </section>
+</div>
+{% endblock %}
+

@@ -1,0 +1,49 @@
+## Stack
+- Backend: Python 3.10+, Flask
+- ORM: Flask-SQLAlchemy
+- DB: Microsoft SQL Server 2021 через ODBC Driver 17 for SQL Server (pyodbc)
+- Frontend: HTML5 + Jinja2 + Tailwind CSS (CDN)
+
+## Naming Rules
+- Python: **snake_case** (функции/переменные/модули), классы — PascalCase
+- База данных: таблицы/колонки — **PascalCase** (как в схеме ниже)
+
+## Database Schema (SQL Server 2021)
+### Projects
+- ID: INT, PK
+- Title: NVARCHAR(255), NOT NULL
+- Description: NVARCHAR(MAX), NULL
+- StartDate: DATE, NULL
+- EndDate: DATE, NULL
+- Status: NVARCHAR(50), NOT NULL (допустимые значения: "In Progress", "Completed", "Expired")
+- Budget: DECIMAL(18,2), NULL
+
+### Employees
+- ID: INT, PK
+- FullName: NVARCHAR(255), NOT NULL
+- Position: NVARCHAR(255), NULL
+- Email: NVARCHAR(255), NULL
+- PasswordHash: NVARCHAR(255), NULL
+- Role: NVARCHAR(20), NOT NULL (Admin / Worker)
+- AvatarFilename: NVARCHAR(255), NULL
+
+### ProjectAssignments (link table)
+- ProjectID: INT, PK, FK -> Projects(ID)
+- EmployeeID: INT, PK, FK -> Employees(ID)
+
+## Project Status
+- [x] Инициализирована базовая структура проекта: `static/`, `templates/`, `app.py`, `models.py`, `config.py`
+- [x] Подключение к БД (SQL Server 2021 + SQLAlchemy) и автоинициализация схемы (create_all)
+- [x] Dashboard: список проектов на главной странице (Tailwind, таблица проектов)
+- [x] CRUD проектов (создание, редактирование, удаление с формой Tailwind и flash-сообщениями)
+- [x] CRUD сотрудников (список, добавление, редактирование, удаление)
+- [x] Project Details: карточка проекта + команда (просмотр, назначение и удаление сотрудников)
+- [x] Reports: выгрузка завершенных проектов (HTML/CSV)
+- [x] Статус проектов: добавлен `Expired` + авто-логика просрочки по `EndDate`
+- [x] Аутентификация и RBAC (Flask-Login): роли `Admin`/`Worker`, защита роутов, динамические права в UI
+- [x] UI для Worker: скрыты действия/разделы, “Только мои проекты”, аккуратные empty-states
+- [x] Профиль: виджет в шапке + страница `/profile` + загрузка аватара в `static/avatars/`
+
+## AI Instruction (CRITICAL)
+Обновляй раздел **Project Status** в этом файле после каждого успешного этапа разработки, чтобы всегда иметь актуальный контекст проекта.
+

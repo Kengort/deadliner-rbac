@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Учет проектов{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html, body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .bg-overdue {
+            background-image: repeating-linear-gradient(
+                45deg,
+                rgba(254, 242, 242, 0.6),
+                rgba(254, 242, 242, 0.6) 10px,
+                rgba(252, 165, 165, 0.12) 10px,
+                rgba(252, 165, 165, 0.12) 20px
+            );
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased">
+<div class="min-h-screen flex">
+    {% set user_role = current_user.role if current_user.is_authenticated else None %}
+    <!-- Sidebar -->
+    {% if current_user.is_authenticated %}
+        <aside class="fixed inset-y-4 left-4 z-40 w-64 bg-slate-900/90 text-slate-100 flex flex-col rounded-2xl border border-slate-700/70 shadow-2xl backdrop-blur-xl">
+            <div class="px-6 py-5 border-b border-slate-700/70">
+                <h1 class="text-lg font-semibold tracking-tight">Project Tracker</h1>
+                <p class="text-xs text-slate-400 mt-1">Компания "под ключ"</p>
+            </div>
+            <nav class="flex-1 px-6 py-4 space-y-1 text-sm">
+                <a href="{{ url_for('index') }}"
+                   class="flex items-center gap-2 px-3 py-2 rounded-xl transition-colors
+                          hover:bg-slate-800/80 relative
+                          {% if request.endpoint == 'index' %}
+                              bg-indigo-500/10 text-indigo-100
+                          {% else %}
+                              text-slate-200
+                          {% endif %}">
+                    {% if request.endpoint == 'index' %}
+                        <span class="absolute inset-y-1 left-0 w-1 rounded-full bg-indigo-500"></span>
+                    {% endif %}
+                    <span class="text-xs uppercase tracking-wide">Проекты</span>
+                </a>
+                <a href="{{ url_for('employees') }}"
+                   class="flex items-center gap-2 px-3 py-2 rounded-xl transition-colors
+                          hover:bg-slate-800/80 relative
+                          {% if request.endpoint == 'employees' %}
+                              bg-indigo-500/10 text-indigo-100
+                          {% else %}
+                              text-slate-200
+                          {% endif %}">
+                    {% if request.endpoint == 'employees' %}
+                        <span class="absolute inset-y-1 left-0 w-1 rounded-full bg-indigo-500"></span>
+                    {% endif %}
+                    <span class="text-xs uppercase tracking-wide">Сотрудники</span>
+                </a>
+                {% if user_role == 'Admin' %}
+                    <a href="{{ url_for('reports') }}"
+                       class="flex items-center gap-2 px-3 py-2 rounded-xl transition-colors
+                              hover:bg-slate-800/80 relative
+                              {% if request.endpoint == 'reports' %}
+                                  bg-indigo-500/10 text-indigo-100
+                              {% else %}
+                                  text-slate-200
+                              {% endif %}">
+                        {% if request.endpoint == 'reports' %}
+                            <span class="absolute inset-y-1 left-0 w-1 rounded-full bg-indigo-500"></span>
+                        {% endif %}
+                        <span class="text-xs uppercase tracking-wide">Отчеты</span>
+                    </a>
+                {% endif %}
+            </nav>
+            <div class="px-6 py-4 border-t border-slate-700/70 text-xs text-slate-500">
+                Flask + SQL Server 2021
+            </div>
+        </aside>
+    {% endif %}
+
+    <!-- Main content -->
+    <main class="flex-1 {% if current_user.is_authenticated %}pl-72{% else %}pl-6{% endif %} pr-6 py-6">
+        {% if current_user.is_authenticated %}
+            <div class="fixed right-6 top-6 z-40">
+                <div class="relative">
+                    <button id="profile-btn"
+                            class="flex items-center gap-3 rounded-2xl bg-white/70 backdrop-blur border border-slate-200/80 px-3 py-2 shadow-sm hover:bg-white">
+                        {% if current_user.avatar_filename %}
+                            <img class="h-9 w-9 rounded-full object-cover border border-slate-200"
+                                 src="{{ url_for('static', filename='avatars/' ~ current_user.avatar_filename) }}"
+                                 alt="avatar">
+                        {% else %}
+                            <img class="h-9 w-9 rounded-full object-cover border border-slate-200"
+                                 src="https://ui-avatars.com/api/?name={{ current_user.full_name|urlencode }}&background=6366f1&color=fff"
+                                 alt="avatar">
+                        {% endif %}
+                        <div class="text-left leading-tight">
+                            <div class="text-sm font-semibold text-slate-900">{{ current_user.full_name }}</div>
+                            <div class="text-[11px] text-slate-500">{{ current_user.role }}</div>
+                        </div>
+                        <div class="text-slate-400 text-xs">▾</div>
+                    </button>
+
+                    <div id="profile-menu"
+                         class="hidden absolute right-0 mt-2 w-56 rounded-2xl bg-white/90 backdrop-blur border border-slate-200/80 shadow-xl overflow-hidden">
+                        <a href="{{ url_for('profile') }}"
+                           class="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50">Настройки</a>
+                        <a href="{{ url_for('profile') }}#avatar"
+                           class="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50">Сменить аватар</a>
+                        <a href="{{ url_for('logout') }}"
+                           class="block px-4 py-3 text-sm text-rose-700 hover:bg-rose-50">Выйти</a>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                (function () {
+                    const btn = document.getElementById('profile-btn');
+                    const menu = document.getElementById('profile-menu');
+                    if (!btn || !menu) return;
+                    const close = () => menu.classList.add('hidden');
+
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        menu.classList.toggle('hidden');
+                    });
+                    document.addEventListener('click', close);
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape') close();
+                    });
+                })();
+            </script>
+        {% endif %}
+
+        {% with messages = get_flashed_messages(with_categories=True) %}
+            {% if messages %}
+                <div class="fixed right-6 {% if current_user.is_authenticated %}top-24{% else %}top-6{% endif %} z-50 space-y-3">
+                    {% for category, message in messages %}
+                        <div class="pointer-events-auto flex max-w-sm items-start gap-3 rounded-2xl bg-slate-900/90 px-4 py-3 text-sm text-slate-50 shadow-2xl backdrop-blur-xl border border-slate-700/80">
+                            <div class="mt-0.5">
+                                {% if category == 'success' %}
+                                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs">✓</span>
+                                {% elif category == 'error' %}
+                                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs">!</span>
+                                {% else %}
+                                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40 text-xs">i</span>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium text-slate-50">{{ message }}</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+</div>
+</body>
+</html>
+

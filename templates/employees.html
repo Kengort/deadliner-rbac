@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Сотрудники — Учет проектов{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+    <header class="flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-semibold text-slate-900">Сотрудники</h2>
+            <p class="text-sm text-slate-500 mt-1">
+                Список сотрудников компании.
+            </p>
+        </div>
+        {% if current_user.role == 'Admin' %}
+            <a href="{{ url_for('add_employee') }}"
+               class="inline-flex items-center rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700">
+                Добавить сотрудника
+            </a>
+        {% endif %}
+    </header>
+
+    <div class="max-w-xl">
+        <label for="employee-search" class="sr-only">Поиск</label>
+        <div class="relative w-72">
+            <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">🔍</span>
+            <input
+                id="employee-search"
+                type="text"
+                placeholder="Поиск по ФИО или должности…"
+                class="w-full rounded-xl border border-transparent bg-white/70 backdrop-blur px-10 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
+            />
+        </div>
+    </div>
+
+    {% if employees %}
+        <div class="overflow-hidden rounded-xl bg-white shadow-sm border border-slate-200">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">ФИО</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Должность</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Email</th>
+                    {% if current_user.role == 'Admin' %}
+                        <th class="px-3 py-2 text-right font-semibold text-slate-600">Действия</th>
+                    {% endif %}
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100" id="employees-tbody">
+                {% for employee in employees %}
+                    <tr class="hover:bg-slate-50 employee-row">
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-slate-900">{{ employee.full_name }}</div>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-slate-600">
+                            {{ employee.position or '-' }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-slate-600">
+                            {% if employee.email %}
+                                <a href="mailto:{{ employee.email }}" class="text-sky-600 hover:text-sky-700">
+                                    {{ employee.email }}
+                                </a>
+                            {% else %}
+                                <span class="text-slate-400">не указан</span>
+                            {% endif %}
+                        </td>
+                        {% if current_user.role == 'Admin' %}
+                            <td class="px-3 py-2 text-right text-xs">
+                                <a href="{{ url_for('edit_employee', id=employee.id) }}"
+                                   class="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 bg-white text-[11px] text-slate-600 shadow-sm hover:bg-slate-50"
+                                   title="Редактировать">
+                                    ✏️
+                                </a>
+                                <form action="{{ url_for('delete_employee', id=employee.id) }}" method="post" class="inline">
+                                    <button type="submit"
+                                            onclick="return confirm('Вы уверены, что хотите удалить этого сотрудника?');"
+                                            class="inline-flex h-7 w-7 items-center justify-center rounded-full border border-rose-400 bg-rose-500/10 text-[11px] text-rose-600 shadow-sm hover:bg-rose-500/20"
+                                            title="Удалить">
+                                        🗑️
+                                    </button>
+                                </form>
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+            <h3 class="text-lg font-semibold text-slate-800">Список сотрудников пуст</h3>
+            <p class="mt-2 text-sm text-slate-500">
+                Добавьте первого сотрудника, чтобы начать вести учет команды компании.
+            </p>
+        </div>
+    {% endif %}
+</div>
+
+<div id="employee-no-results" class="hidden rounded-2xl border border-dashed border-slate-300 bg-white/70 backdrop-blur px-6 py-10 text-center">
+    <h3 class="text-lg font-semibold text-slate-800">Ничего не найдено</h3>
+    <p class="mt-2 text-sm text-slate-500">Попробуйте изменить запрос.</p>
+</div>
+
+<script>
+    (function () {
+        const input = document.getElementById('employee-search');
+        const rows = Array.from(document.querySelectorAll('.employee-row'));
+        const empty = document.getElementById('employee-no-results');
+
+        if (!input || !rows.length) return;
+
+        const norm = (s) => (s || '').toString().toLowerCase().trim();
+
+        input.addEventListener('input', () => {
+            const q = norm(input.value);
+            rows.forEach((row) => {
+                const text = norm(row.innerText);
+                row.classList.toggle('hidden', q && !text.includes(q));
+            });
+
+            if (empty) {
+                const anyVisible = rows.some((r) => !r.classList.contains('hidden'));
+                empty.classList.toggle('hidden', anyVisible);
+            }
+        });
+    })();
+</script>
+{% endblock %}
+
