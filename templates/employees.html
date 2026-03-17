@@ -37,6 +37,7 @@
             <table class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50">
                 <tr>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Фото</th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-600">ФИО</th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-600">Должность</th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-600">Email</th>
@@ -48,6 +49,20 @@
                 <tbody class="divide-y divide-slate-100" id="employees-tbody">
                 {% for employee in employees %}
                     <tr class="hover:bg-slate-50 employee-row">
+                        <td class="px-4 py-3">
+                            {% if employee.avatar_filename %}
+                                <img class="h-8 w-8 rounded-full object-cover border border-slate-200"
+                                     src="{{ url_for('static', filename='avatars/' ~ employee.avatar_filename) }}"
+                                     alt="avatar">
+                            {% else %}
+                                {% set parts = employee.full_name.split() %}
+                                {% set initials = parts[0][0] ~ (parts[-1][0] if parts|length > 1 else '') %}
+                                {% set colors = ['bg-indigo-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-sky-500', 'bg-violet-500'] %}
+                                <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white text-[11px] font-semibold text-white shadow-sm {{ colors[employee.id % (colors|length)] }}">
+                                    {{ initials }}
+                                </div>
+                            {% endif %}
+                        </td>
                         <td class="px-4 py-3">
                             <div class="font-medium text-slate-900">{{ employee.full_name }}</div>
                         </td>
