@@ -10,6 +10,7 @@ from sqlalchemy.exc import OperationalError
 import pyodbc
 import os
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash
 
 from config import Config
 from models import db, Project, Employee, ProjectAssignment
@@ -106,7 +107,7 @@ def create_app() -> Flask:
     @login_manager.user_loader
     def load_user(user_id: str):
         try:
-            return Employee.query.get(int(user_id))
+            return db.session.get(Employee, int(user_id))
         except (TypeError, ValueError):
             return None
 
@@ -323,21 +324,11 @@ def create_app() -> Flask:
             end_date_raw = request.form.get("end_date") or None
             status = request.form.get("status") or "In Progress"
             budget_raw = request.form.get("budget") or None
-
-            from datetime import datetime
             from decimal import Decimal, InvalidOperation
             from datetime import date as _date
 
-            start_date = (
-                datetime.strptime(start_date_raw, "%Y-%m-%d").date()
-                if start_date_raw
-                else None
-            )
-            end_date = (
-                datetime.strptime(end_date_raw, "%Y-%m-%d").date()
-                if end_date_raw
-                else None
-            )
+            start_date = _parse_date_any(start_date_raw) if start_date_raw else None
+            end_date = _parse_date_any(end_date_raw) if end_date_raw else None
 
             # Принудительная логика Expired
             if status != "Completed" and end_date is not None and _date.today() > end_date:
@@ -389,10 +380,20 @@ def create_app() -> Flask:
         if current_user.role != "Admin":
             abort(403)
         project = Project.query.get_or_404(id)
-        db.session.delete(project)
-        db.session.commit()
-        flash("Проект успешно удален.", "success")
-        return redirect(url_for("index"))
+        try:
+            # Сначала удаляем связи команды (ProjectAssignments), затем сам проект
+            ProjectAssignment.query.filter_by(project_id=project.id).delete(
+                synchronize_session=False
+            )
+            db.session.delete(project)
+            db.session.commit()
+            flash("Проект успешно удален.", "success")
+            return redirect(url_for("index"))
+        except Exception:
+            db.session.rollback()
+            app.logger.exception("Ошибка при удалении проекта id=%s", id)
+            flash("Ошибка при удалении: проверьте связи данных.", "error")
+            return redirect(url_for("project_details", id=id))
 
     @app.route("/project/<int:id>", methods=["GET", "POST"])
     @login_required
@@ -408,24 +409,14 @@ def create_app() -> Flask:
             end_date_raw = request.form.get("end_date") or None
             status = request.form.get("status") or project.status
             budget_raw = request.form.get("budget") or None
-
-            from datetime import datetime
             from datetime import date as _date
             from decimal import Decimal, InvalidOperation
 
             project.title = title or project.title
             project.description = description
 
-            project.start_date = (
-                datetime.strptime(start_date_raw, "%Y-%m-%d").date()
-                if start_date_raw
-                else None
-            )
-            project.end_date = (
-                datetime.strptime(end_date_raw, "%Y-%m-%d").date()
-                if end_date_raw
-                else None
-            )
+            project.start_date = _parse_date_any(start_date_raw) if start_date_raw else None
+            project.end_date = _parse_date_any(end_date_raw) if end_date_raw else None
             # Принудительная логика Expired
             if status != "Completed" and project.end_date is not None and _date.today() > project.end_date:
                 project.status = "Expired"
@@ -554,6 +545,7 @@ def create_app() -> Flask:
             position = request.form.get("position") or None
             email = (request.form.get("email") or "").strip() or None
             role = (request.form.get("role") or "Worker").strip() or "Worker"
+            password = request.form.get("password")
             file = request.files.get("avatar")
 
             if not full_name:
@@ -564,11 +556,22 @@ def create_app() -> Flask:
                     mode="create",
                 )
 
+            if not password:
+                flash("Пароль обязателен для создания сотрудника.", "error")
+                return render_template(
+                    "employee_form.html",
+                    employee=None,
+                    mode="create",
+                )
+
+            hashed_password = generate_password_hash(password)
+
             employee = Employee(
                 full_name=full_name,
                 position=position,
                 email=email,
                 role=role if role in {"Admin", "Worker"} else "Worker",
+                password_hash=hashed_password,
             )
             db.session.add(employee)
             db.session.commit()
@@ -601,6 +604,7 @@ def create_app() -> Flask:
             position = request.form.get("position") or None
             email = (request.form.get("email") or "").strip() or None
             role = (request.form.get("role") or employee.role or "Worker").strip()
+            password = request.form.get("password") or ""
             file = request.files.get("avatar")
 
             if not full_name:
@@ -626,6 +630,9 @@ def create_app() -> Flask:
                     stored_name = f"employee_{employee.id}{ext}"
                     file.save(os.path.join(avatars_dir, stored_name))
                     employee.avatar_filename = stored_name
+
+            if password.strip():
+                employee.password_hash = generate_password_hash(password.strip())
 
             db.session.commit()
             flash("Данные сотрудника обновлены.", "success")
