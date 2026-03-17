@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Учет проектов{% endblock %}</title>
+    <title>{% block title %}Flux — система управления проектами{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,14 +39,8 @@
             animation: wiggle 420ms ease-in-out;
         }
 
-        @keyframes fillGrow {
-            from { transform: scaleX(0); }
-            to { transform: scaleX(1); }
-        }
         .progress-fill {
-            transform-origin: left;
-            transform: scaleX(0);
-            animation: fillGrow 900ms cubic-bezier(.2,.8,.2,1) forwards;
+            transition: width 500ms cubic-bezier(.2,.8,.2,1);
         }
         /* Live indicators */
         @keyframes blinker {
@@ -107,67 +101,62 @@
            поэтому направление задаём через dropdownDirection в JS. */
     </style>
 </head>
-<body class="bg-[#F8FAFC] text-slate-900 antialiased">
+<body class="bg-slate-50 text-slate-900 antialiased">
 <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
   <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-indigo-50/50 blur-[120px]"></div>
   <div class="absolute top-[20%] -right-[10%] w-[30%] h-[30%] rounded-full bg-rose-50/30 blur-[100px]"></div>
 </div>
-<div class="min-h-screen flex">
+<div class="min-h-screen flex bg-transparent">
     {% set user_role = current_user.role if current_user.is_authenticated else None %}
     <!-- Sidebar -->
     {% if current_user.is_authenticated %}
-        <aside class="fixed inset-y-4 left-4 z-40 w-64 bg-slate-900/90 text-slate-100 flex flex-col rounded-2xl border border-slate-700/70 shadow-2xl backdrop-blur-md">
-            <div class="px-6 py-5 border-b border-slate-700/70">
-                <h1 class="text-lg font-semibold tracking-tight">Project Tracker</h1>
-                <p class="text-xs text-slate-400 mt-1">Компания "под ключ"</p>
+        <aside class="fixed inset-y-4 left-4 z-40 w-64 bg-white/70 text-slate-900 flex flex-col rounded-2xl border-r border-slate-200/60 shadow-2xl backdrop-blur-md">
+            <div class="px-6 py-5 border-b border-slate-200/60 flex items-center gap-3">
+                <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-600 shadow-lg shadow-indigo-200">
+                    <i data-lucide="folder-kanban" class="w-4 h-4 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm font-semibold tracking-tight text-slate-900">Flux</h1>
+                </div>
             </div>
-            <nav class="flex-1 px-6 py-4 space-y-1 text-sm">
+            <nav class="flex-1 px-4 py-4 space-y-1 text-sm">
                 <a href="{{ url_for('index') }}"
-                   class="flex items-center gap-2 px-3 py-2 rounded-xl transition-colors
-                          hover:bg-slate-800/80 relative
+                   class="group flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-300 ease-in-out
+                          hover:bg-slate-100 hover:text-indigo-950 hover:font-bold relative
                           {% if request.endpoint == 'index' %}
-                              bg-indigo-500/10 text-indigo-100
+                              bg-indigo-50 text-indigo-600 font-semibold
                           {% else %}
-                              text-slate-200
+                              text-slate-600
                           {% endif %}">
-                    {% if request.endpoint == 'index' %}
-                        <span class="absolute inset-y-1 left-0 w-1 rounded-full bg-indigo-500"></span>
-                    {% endif %}
-                    <i data-lucide="folder-kanban" class="w-4 h-4 text-slate-200/90"></i>
+                    <i data-lucide="folder-kanban" class="w-4 h-4 transition-transform duration-300 group-hover:scale-110 group-hover:text-indigo-600 group-hover-wiggle"></i>
                     <span class="text-xs uppercase tracking-wide">Проекты</span>
                 </a>
                 <a href="{{ url_for('employees') }}"
-                   class="flex items-center gap-2 px-3 py-2 rounded-xl transition-colors
-                          hover:bg-slate-800/80 relative
+                   class="group flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-300 ease-in-out
+                          hover:bg-slate-100 hover:text-indigo-950 hover:font-bold relative
                           {% if request.endpoint == 'employees' %}
-                              bg-indigo-500/10 text-indigo-100
+                              bg-indigo-50 text-indigo-600 font-semibold
                           {% else %}
-                              text-slate-200
+                              text-slate-600
                           {% endif %}">
-                    {% if request.endpoint == 'employees' %}
-                        <span class="absolute inset-y-1 left-0 w-1 rounded-full bg-indigo-500"></span>
-                    {% endif %}
-                    <i data-lucide="users" class="w-4 h-4 text-slate-200/90"></i>
+                    <i data-lucide="users" class="w-4 h-4 transition-transform duration-300 group-hover:scale-110 group-hover:text-indigo-600 group-hover-wiggle"></i>
                     <span class="text-xs uppercase tracking-wide">Сотрудники</span>
                 </a>
                 {% if user_role == 'Admin' %}
                     <a href="{{ url_for('reports') }}"
-                       class="flex items-center gap-2 px-3 py-2 rounded-xl transition-colors
-                              hover:bg-slate-800/80 relative
+                       class="group flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-300 ease-in-out
+                              hover:bg-slate-100 hover:text-indigo-950 hover:font-bold relative
                               {% if request.endpoint == 'reports' %}
-                                  bg-indigo-500/10 text-indigo-100
+                                  bg-indigo-50 text-indigo-600 font-semibold
                               {% else %}
-                                  text-slate-200
+                                  text-slate-600
                               {% endif %}">
-                        {% if request.endpoint == 'reports' %}
-                            <span class="absolute inset-y-1 left-0 w-1 rounded-full bg-indigo-500"></span>
-                        {% endif %}
-                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-slate-200/90"></i>
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 transition-transform duration-300 group-hover:scale-110 group-hover:text-indigo-600 group-hover-wiggle"></i>
                         <span class="text-xs uppercase tracking-wide">Отчеты</span>
                     </a>
                 {% endif %}
             </nav>
-            <div class="px-6 py-4 border-t border-slate-700/70 text-xs text-slate-500">
+            <div class="px-6 py-4 border-t border-slate-200/60 text-xs text-slate-400">
                 Flask + SQL Server 2021
             </div>
         </aside>

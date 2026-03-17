@@ -16,6 +16,32 @@ from config import Config
 from models import db, Project, Employee, ProjectAssignment
 
 
+def compute_progress_percent(p: Project, today=None) -> int:
+    """
+    Единый helper для вычисления процента готовности проекта по времени.
+    - 0% в начале периода
+    - 100% в день окончания или позже
+    Используется на дашборде и в деталях проекта (Single Source of Truth).
+    """
+    from datetime import date as _date
+
+    if today is None:
+        today = _date.today()
+
+    if p.status == "Completed":
+        return 100
+
+    if p.status == "In Progress" and p.start_date and p.end_date:
+        total_days = (p.end_date - p.start_date).days
+        if total_days > 0:
+            elapsed_days = (today - p.start_date).days
+            ratio_done = elapsed_days / total_days
+            return max(0, min(100, int(ratio_done * 100)))
+
+    # Для проектов без дат показываем базовое значение
+    return 0
+
+
 def _parse_date_any(raw: str):
     """
     Поддерживает форматы дат:
@@ -238,19 +264,6 @@ def create_app() -> Flask:
         from datetime import date
         from decimal import Decimal, InvalidOperation
 
-        def compute_progress_percent(p: Project, today_: date) -> int:
-            if p.status == "Completed":
-                return 100
-            if p.status == "Expired":
-                return 95
-            if p.status == "In Progress" and p.start_date and p.end_date:
-                total_days = (p.end_date - p.start_date).days
-                if total_days > 0:
-                    elapsed_days = (today_ - p.start_date).days
-                    ratio = elapsed_days / total_days
-                    return max(0, min(95, int(ratio * 100)))
-            return 10
-
         def compute_urgency_color(p: Project, today_: date) -> str:
             """
             Для Active-проектов: цвет прогресса по близости дедлайна.
@@ -306,7 +319,8 @@ def create_app() -> Flask:
                 active_projects.append(project)
 
         overdue_projects.sort(key=lambda p: p.end_date or date.min)
-        active_projects.sort(key=lambda p: p.end_date or date.max)
+        # Активные проекты сортируем по прогрессу (время прошло / дедлайн), сначала самые "готовые"
+        active_projects.sort(key=lambda p: getattr(p, "progress_percent", 0), reverse=True)
         completed_projects.sort(key=lambda p: p.end_date or date.min, reverse=True)
 
         project_ids = [p.id for p in all_projects if p.id is not None]
@@ -397,7 +411,7 @@ def create_app() -> Flask:
             return redirect(url_for("edit_project", id=project.id))
 
         draft_project = Project(title="", status="In Progress")
-        draft_project.progress_percent = 10
+        draft_project.progress_percent = compute_progress_percent(draft_project)
         draft_project.is_overdue = False
         return render_template(
             "project_details.html",
@@ -486,16 +500,7 @@ def create_app() -> Flask:
             and today > project.end_date
         )
 
-        progress_percent = 10
-        if project.status == "Completed":
-            progress_percent = 100
-        elif project.status == "In Progress" and project.start_date and project.end_date:
-            total_days = (project.end_date - project.start_date).days
-            if total_days > 0:
-                elapsed_days = (today - project.start_date).days
-                ratio = elapsed_days / total_days
-                progress_percent = max(0, min(95, int(ratio * 100)))
-        project.progress_percent = progress_percent
+        project.progress_percent = compute_progress_percent(project, today)
 
         assigned_employees = (
             Employee.query.join(ProjectAssignment)

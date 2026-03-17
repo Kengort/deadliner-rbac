@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Проекты — Учет проектов{% endblock %}
+{% block title %}Проекты — Flux{% endblock %}
 
 {% block content %}
 <div class="max-w-6xl mx-auto space-y-6">
@@ -295,13 +295,21 @@
                             </div>
 
                             <div class="mt-4">
-                                <div class="flex items-center justify-between mb-1 text-[11px] text-slate-500">
-                                    <span>Готовность</span>
-                                    <span>{{ project.progress_percent }}%</span>
+                                <div class="mt-2 flex items-baseline justify-between gap-1 text-[11px] font-medium text-slate-500">
+                                    <span class="text-[10px] uppercase tracking-wider font-black text-slate-400">Срок проекта</span>
+                                    <span class="font-bold text-slate-700">{{ project.progress_percent }}%</span>
                                 </div>
-                                <div class="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                                    <div class="h-full rounded-full {{ project.urgency_bar_class }} bg-emerald-500 progress-fill"
-                                         data-progress="{{ project.progress_percent }}"></div>
+
+                                <div class="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden mt-2"
+                                     style="--deadline-progress: {{ project.progress_percent or 0 }}%;">
+                                    <div class="h-full rounded-full transition-all duration-1000 ease-out
+                                                {% if project.progress_percent and project.progress_percent > 90 %}
+                                                    bg-orange-500
+                                                {% else %}
+                                                    bg-emerald-500
+                                                {% endif %}"
+                                         style="width: var(--deadline-progress);">
+                                    </div>
                                 </div>
                             </div>
 
@@ -527,13 +535,6 @@
                 var delay = el.getAttribute('data-anim-delay');
                 if (delay) {
                     el.style.animationDelay = delay + 'ms';
-                }
-            });
-
-            document.querySelectorAll('[data-progress]').forEach(function (el) {
-                var value = el.getAttribute('data-progress');
-                if (value !== null && value !== '') {
-                    el.style.width = value + '%';
                 }
             });
         });
