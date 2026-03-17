@@ -7,7 +7,16 @@
     {% if current_user.role == 'Admin' %}
         <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <h2 class="text-2xl font-semibold text-slate-900">Проекты <span class="text-slate-400">({{ total_count }})</span></h2>
+                <div class="flex items-center gap-3">
+                    <div class="flex items-baseline gap-2">
+                        <h2 class="text-3xl font-extrabold text-slate-950 tracking-tight">Проекты</h2>
+                        <span class="text-lg font-medium text-slate-400">{{ total_count }}</span>
+                    </div>
+                    <div class="relative flex h-2.5 w-2.5 items-center justify-center">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative animate-breathe inline-flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></span>
+                    </div>
+                </div>
                 <p class="text-sm text-slate-500 mt-1">
                     Список проектов компании с основными показателями.
                 </p>
@@ -54,43 +63,43 @@
     {% if total_count > 0 %}
         <!-- Stats Grid -->
         <section class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div class="group rounded-2xl bg-white/90 backdrop-blur-md border border-slate-200/60 shadow-sm p-6 min-h-[110px]">
+            <div class="group rounded-2xl bg-white border border-slate-100 shadow-sm p-4 min-h-[110px]">
                 <div class="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Всего проектов</div>
                 <div class="mt-2 flex items-center justify-between">
-                    <div class="text-3xl font-bold text-slate-900">{{ total_count }}</div>
-                    <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600 group-hover-wiggle">
+                    <div class="text-2xl font-extrabold tracking-tight text-slate-950">{{ total_count }}</div>
+                    <div class="p-2 rounded-lg text-indigo-500/60">
                         <i data-lucide="layout-grid" class="w-5 h-5"></i>
                     </div>
                 </div>
             </div>
-            <div class="group rounded-2xl bg-white/90 backdrop-blur-md border border-slate-200/60 shadow-sm p-6 min-h-[110px]">
+            <div class="group rounded-2xl bg-white border border-slate-100 shadow-sm p-4 min-h-[110px]">
                 <div class="text-[11px] font-semibold uppercase tracking-widest text-slate-500">В работе</div>
                 <div class="mt-2 flex items-center justify-between">
-                    <div class="text-3xl font-bold text-slate-900">{{ active_projects|length }}</div>
-                    <div class="p-2 bg-amber-50 rounded-lg text-amber-600 group-hover-wiggle">
+                    <div class="text-2xl font-extrabold tracking-tight text-slate-950">{{ active_projects|length }}</div>
+                    <div class="p-2 rounded-lg text-amber-500/60">
                         <i data-lucide="activity" class="w-5 h-5"></i>
                     </div>
                 </div>
             </div>
-            <div class="group rounded-2xl bg-white/90 backdrop-blur-md border border-slate-200/60 shadow-sm p-6 min-h-[110px]">
+            <div class="group rounded-2xl bg-white border border-slate-100 shadow-sm p-4 min-h-[110px]">
                 <div class="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Сотрудников задействовано</div>
                 <div class="mt-2 flex items-center justify-between">
                     <div class="leading-tight">
-                        <div class="text-3xl font-bold text-slate-900">{{ employees_involved }}</div>
+                        <div class="text-2xl font-extrabold tracking-tight text-slate-950">{{ employees_involved }}</div>
                         <div class="text-xs text-slate-500">из {{ total_employees }}</div>
                     </div>
-                    <div class="p-2 bg-sky-50 rounded-lg text-sky-600 group-hover-wiggle">
+                    <div class="p-2 rounded-lg text-sky-500/60">
                         <i data-lucide="users" class="w-5 h-5"></i>
                     </div>
                 </div>
             </div>
-            <div class="group rounded-2xl bg-white/90 backdrop-blur-md border border-slate-200/60 shadow-sm p-6 min-h-[110px]">
+            <div class="group rounded-2xl bg-white border border-slate-100 shadow-sm p-4 min-h-[110px]">
                 <div class="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Общий бюджет</div>
                 <div class="mt-2 flex items-center justify-between">
-                    <div class="text-2xl font-bold text-slate-900">
+                    <div class="text-2xl font-extrabold tracking-tight text-slate-950">
                         {{ "{:,.0f}".format(total_budget|default(0)).replace(",", " ").replace(".", " ") }} BYN
                     </div>
-                    <div class="p-2 bg-emerald-50 rounded-lg text-emerald-600 group-hover-wiggle">
+                    <div class="p-2 rounded-lg text-emerald-500/60">
                         <i data-lucide="wallet" class="w-5 h-5"></i>
                     </div>
                 </div>
@@ -117,8 +126,8 @@
             {% if overdue_projects %}
                 <div class="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {% for project in overdue_projects %}
-                        <div class="group relative flex h-full flex-col rounded-2xl bg-white backdrop-blur-lg border border-red-200 border-l-4 border-l-red-500 shadow-[0_12px_40px_rgb(254,226,226,0.6)] p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_16px_50px_rgb(248,113,113,0.35)] animate-in project-card"
-                             style="animation-delay: {{ loop.index0 * 100 }}ms"
+                        <div class="group relative flex h-full flex-col rounded-2xl bg-white backdrop-blur-lg border border-red-200 border-l-4 border-l-red-500 shadow-[0_12px_40px_rgb(254,226,226,0.6)] p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_16px_50px_rgb(248,113,113,0.35)] hover:ring-2 hover:ring-indigo-500/20 animate-in project-card"
+                             data-anim-delay="{{ loop.index0 * 100 }}"
                              data-project-title="{{ project.title|lower }}">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="space-y-1 h-12 overflow-hidden">
@@ -128,7 +137,7 @@
                                             <span class="relative inline-flex h-2 w-2 rounded-full bg-red-600"></span>
                                         </div>
                                         <a href="{{ url_for('project_details', id=project.id) }}"
-                                           class="ml-1 text-base font-semibold text-slate-900 hover:text-red-700 transition">
+                                           class="ml-1 mb-1 text-base font-semibold text-slate-900 hover:text-red-700 transition">
                                             {{ project.title }}
                                         </a>
                                     </div>
@@ -143,21 +152,32 @@
                                 </span>
                             </div>
 
-                            <div class="mt-3 text-xs text-slate-500">
-                                <div class="grid grid-cols-2 gap-2 w-full">
-                                    <div class="inline-flex items-center gap-1.5">
-                                        <i data-lucide="alert-triangle" class="text-red-500 w-5 h-5 group-hover:animate-pulse"></i>
-                                        <span>
-                                            {% if project.end_date %}{{ project.end_date.strftime('%d.%m.%Y') }}{% else %}дедлайн не задан{% endif %}
-                                        </span>
+                            <div class="mt-4 pt-3 border-t border-slate-50 flex flex-col gap-3">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="p-1.5 bg-red-50 rounded-lg">
+                                        <i data-lucide="alert-circle" class="text-red-500 w-4 h-4"></i>
                                     </div>
-                                    <div class="inline-flex items-center justify-end gap-1.5 font-medium text-slate-900">
-                                        <i data-lucide="banknote" class="text-emerald-500 w-5 h-5"></i>
-                                        {% if project.budget is not none %}
-                                            <span class="bg-red-100 text-red-700 px-2 py-1 rounded-md">{{ "{:,.0f}".format(project.budget).replace(",", " ").replace(".", " ") }} BYN</span>
-                                        {% else %}
-                                            <span class="bg-red-100 text-red-700 px-2 py-1 rounded-md">без бюджета</span>
-                                        {% endif %}
+                                    <div>
+                                        <div class="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none mb-1">Дедлайн</div>
+                                        <div class="text-sm font-medium text-slate-700 leading-none">
+                                            {% if project.end_date %}{{ project.end_date.strftime('%d.%m.%Y') }}{% else %}дедлайн не задан{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2.5">
+                                    <div class="p-1.5 bg-emerald-50 rounded-lg">
+                                        <i data-lucide="banknote" class="text-emerald-500 w-4 h-4"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none mb-1">Бюджет</div>
+                                        <div class="text-sm font-bold text-slate-900 leading-none">
+                                            {% if project.budget %}
+                                                {{ "{:,.0f}".format(project.budget).replace(",", " ") }} BYN
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -205,34 +225,30 @@
             {% endif %}
         </section>
 
+        <div class="my-8 border-t border-slate-100"></div>
+
         <!-- Active -->
         <section class="space-y-3">
             <div class="flex items-end justify-between">
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3">
                     <h3 class="text-sm font-semibold text-slate-900 inline-flex items-center gap-2">
                         <i data-lucide="clock" class="text-amber-500 w-5 h-5"></i>
                         В работе
                         <span class="text-xs text-slate-500">({{ active_projects|length }})</span>
                     </h3>
-                    <div class="flex items-center gap-1.5 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                        <span class="relative flex h-2 w-2">
-                            <span class="animate-blink inline-flex h-full w-full rounded-full bg-emerald-500"></span>
-                        </span>
-                        <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">LIVE</span>
-                    </div>
                 </div>
             </div>
 
             {% if active_projects %}
                 <div class="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {% for project in active_projects %}
-                        <div class="group relative flex h-full flex-col rounded-2xl bg-white backdrop-blur-md border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-5 transition-all duration-300 hover:scale-[1.02] hover:backdrop-blur-xl hover:border-slate-200 animate-in project-card"
-                             style="animation-delay: {{ loop.index0 * 100 }}ms"
+                        <div class="group relative flex h-full flex-col rounded-2xl bg-white backdrop-blur-md border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-5 transition-all duration-300 hover:scale-[1.02] hover:backdrop-blur-xl hover:border-slate-200 hover:ring-2 hover:ring-indigo-500/20 animate-in project-card"
+                             data-anim-delay="{{ loop.index0 * 100 }}"
                              data-project-title="{{ project.title|lower }}">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="space-y-1 h-12 overflow-hidden">
                                     <a href="{{ url_for('project_details', id=project.id) }}"
-                                       class="text-base font-semibold text-slate-900 hover:text-indigo-600 transition">
+                                       class="mb-1 text-base font-semibold text-slate-900 hover:text-indigo-600 transition">
                                         {{ project.title }}
                                     </a>
                                     {% if project.description %}
@@ -246,23 +262,34 @@
                                 </span>
                             </div>
 
-                            <div class="mt-3 text-xs text-slate-500">
-                                <div class="grid grid-cols-2 gap-2 w-full">
-                                    <div class="inline-flex items-center gap-1.5">
-                                        <i data-lucide="calendar" class="text-sky-500 w-5 h-5"></i>
-                                        <span>
+                            <div class="mt-4 pt-3 border-t border-slate-50 flex flex-col gap-3">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="p-1.5 bg-slate-50 rounded-lg">
+                                        <i data-lucide="calendar" class="text-indigo-500 w-4 h-4"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none mb-1">Сроки</div>
+                                        <div class="text-sm font-medium text-slate-700 leading-none">
                                             {% if project.start_date %}{{ project.start_date.strftime('%d.%m.%Y') }}{% endif %}
                                             —
                                             {% if project.end_date %}{{ project.end_date.strftime('%d.%m.%Y') }}{% else %}не задано{% endif %}
-                                        </span>
+                                        </div>
                                     </div>
-                                    <div class="inline-flex items-center justify-end gap-1.5 font-medium text-slate-800">
-                                        <i data-lucide="banknote" class="text-emerald-500 w-5 h-5"></i>
-                                        {% if project.budget is not none %}
-                                            <span>{{ "{:,.0f}".format(project.budget).replace(",", " ").replace(".", " ") }} BYN</span>
-                                        {% else %}
-                                            <span class="text-slate-400">без бюджета</span>
-                                        {% endif %}
+                                </div>
+
+                                <div class="flex items-center gap-2.5">
+                                    <div class="p-1.5 bg-emerald-50 rounded-lg">
+                                        <i data-lucide="banknote" class="text-emerald-500 w-4 h-4"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none mb-1">Бюджет</div>
+                                        <div class="text-sm font-bold text-slate-900 leading-none">
+                                            {% if project.budget %}
+                                                {{ "{:,.0f}".format(project.budget).replace(",", " ") }} BYN
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -274,7 +301,7 @@
                                 </div>
                                 <div class="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                                     <div class="h-full rounded-full {{ project.urgency_bar_class }} bg-emerald-500 progress-fill"
-                                         style="width: {{ project.progress_percent }}%;"></div>
+                                         data-progress="{{ project.progress_percent }}"></div>
                                 </div>
                             </div>
 
@@ -321,6 +348,8 @@
             {% endif %}
         </section>
 
+        <div class="my-8 border-t border-slate-100"></div>
+
         <!-- Completed -->
         <section class="space-y-3">
             <div class="flex items-end justify-between">
@@ -336,13 +365,13 @@
             {% if completed_projects %}
                 <div class="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {% for project in completed_projects %}
-                        <div class="group relative flex h-full flex-col rounded-2xl bg-emerald-50/50 backdrop-blur-md border border-emerald-100 shadow-[0_8px_30px_rgb(16,185,129,0.04)] p-5 transition-all duration-300 hover:scale-[1.02] hover:backdrop-blur-xl hover:border-emerald-200 animate-in project-card"
-                             style="animation-delay: {{ loop.index0 * 100 }}ms"
+                        <div class="group relative flex h-full flex-col rounded-2xl bg-emerald-50/50 backdrop-blur-md border border-emerald-100 shadow-[0_8px_30px_rgb(16,185,129,0.04)] p-5 transition-all duration-300 hover:scale-[1.02] hover:backdrop-blur-xl hover:border-emerald-200 hover:ring-2 hover:ring-indigo-500/20 animate-in project-card"
+                             data-anim-delay="{{ loop.index0 * 100 }}"
                              data-project-title="{{ project.title|lower }}">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="space-y-1 h-12 overflow-hidden">
                                     <a href="{{ url_for('project_details', id=project.id) }}"
-                                       class="text-base font-semibold text-slate-900 hover:text-indigo-600 transition">
+                                       class="mb-1 text-base font-semibold text-slate-900 hover:text-indigo-600 transition">
                                         {{ project.title }}
                                     </a>
                                     {% if project.description %}
@@ -356,21 +385,32 @@
                                 </span>
                             </div>
 
-                            <div class="mt-3 text-xs text-slate-500">
-                                <div class="grid grid-cols-2 gap-2 w-full">
-                                    <div class="inline-flex items-center gap-1.5">
-                                        <i data-lucide="calendar" class="text-sky-500 w-5 h-5"></i>
-                                        <span>
-                                            {% if project.end_date %}{{ project.end_date.strftime('%d.%m.%Y') }}{% else %}—{% endif %}
-                                        </span>
+                            <div class="mt-4 pt-3 border-t border-slate-50 flex flex-col gap-3">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="p-1.5 bg-slate-50 rounded-lg">
+                                        <i data-lucide="calendar" class="text-indigo-500 w-4 h-4"></i>
                                     </div>
-                                    <div class="inline-flex items-center justify-end gap-1.5 font-medium text-slate-800">
-                                        <i data-lucide="banknote" class="text-emerald-500 w-5 h-5"></i>
-                                        {% if project.budget is not none %}
-                                            <span>{{ "{:,.0f}".format(project.budget).replace(",", " ").replace(".", " ") }} BYN</span>
-                                        {% else %}
-                                            <span class="text-slate-400">без бюджета</span>
-                                        {% endif %}
+                                    <div>
+                                        <div class="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none mb-1">Дата сдачи</div>
+                                        <div class="text-sm font-medium text-slate-700 leading-none">
+                                            {% if project.end_date %}{{ project.end_date.strftime('%d.%m.%Y') }}{% else %}—{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2.5">
+                                    <div class="p-1.5 bg-emerald-50 rounded-lg">
+                                        <i data-lucide="banknote" class="text-emerald-500 w-4 h-4"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none mb-1">Бюджет</div>
+                                        <div class="text-sm font-bold text-slate-900 leading-none">
+                                            {% if project.budget %}
+                                                {{ "{:,.0f}".format(project.budget).replace(",", " ") }} BYN
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -477,5 +517,26 @@
     })();
 </script>
 {% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+    {{ super() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('[data-anim-delay]').forEach(function (el) {
+                var delay = el.getAttribute('data-anim-delay');
+                if (delay) {
+                    el.style.animationDelay = delay + 'ms';
+                }
+            });
+
+            document.querySelectorAll('[data-progress]').forEach(function (el) {
+                var value = el.getAttribute('data-progress');
+                if (value !== null && value !== '') {
+                    el.style.width = value + '%';
+                }
+            });
+        });
+    </script>
 {% endblock %}
 

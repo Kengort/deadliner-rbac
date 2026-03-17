@@ -65,6 +65,13 @@
         .animate-ping-slow {
             animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
         }
+        @keyframes breathe {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.85); }
+        }
+        .animate-breathe {
+            animation: breathe 3s ease-in-out infinite;
+        }
         .bg-overdue {
             background-image: repeating-linear-gradient(
                 45deg,
@@ -101,6 +108,10 @@
     </style>
 </head>
 <body class="bg-[#F8FAFC] text-slate-900 antialiased">
+<div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+  <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-indigo-50/50 blur-[120px]"></div>
+  <div class="absolute top-[20%] -right-[10%] w-[30%] h-[30%] rounded-full bg-rose-50/30 blur-[100px]"></div>
+</div>
 <div class="min-h-screen flex">
     {% set user_role = current_user.role if current_user.is_authenticated else None %}
     <!-- Sidebar -->
