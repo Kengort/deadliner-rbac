@@ -97,13 +97,14 @@ def create_app() -> Flask:
         if request.method == "POST":
             email = (request.form.get("email") or "").strip().lower()
             password = request.form.get("password") or ""
+            remember = request.form.get("remember") == "on"
 
             user = Employee.query.filter(Employee.email == email).first()
             if not user or not user.check_password(password):
                 flash("Неверный email или пароль.", "error")
                 return render_template("login.html")
 
-            login_user(user)
+            login_user(user, remember=remember)
             flash("Вы вошли в систему.", "success")
             return redirect(url_for("index"))
 
@@ -147,31 +148,67 @@ def create_app() -> Flask:
     @app.route("/profile", methods=["GET", "POST"])
     @login_required
     def profile():
+        return redirect(url_for("settings"))
+
+    @app.route("/settings", methods=["GET", "POST"])
+    @login_required
+    def settings():
         if request.method == "POST":
-            file = request.files.get("avatar")
-            if not file or not file.filename:
-                flash("Файл не выбран.", "error")
-                return redirect(url_for("profile"))
+            form_type = request.form.get("form_type") or ""
 
-            filename = secure_filename(file.filename)
-            ext = os.path.splitext(filename)[1].lower()
-            if ext not in {".png", ".jpg", ".jpeg", ".webp"}:
-                flash("Разрешены только PNG/JPG/WEBP.", "error")
-                return redirect(url_for("profile"))
+            if form_type == "info":
+                full_name = (request.form.get("full_name") or "").strip()
+                position = (request.form.get("position") or "").strip() or None
+                email = (request.form.get("email") or "").strip().lower() or None
 
-            avatars_dir = os.path.join(app.root_path, "static", "avatars")
-            os.makedirs(avatars_dir, exist_ok=True)
-            stored_name = f"user_{current_user.id}{ext}"
-            stored_path = os.path.join(avatars_dir, stored_name)
-            file.save(stored_path)
+                if not full_name:
+                    flash("ФИО обязательно для заполнения.", "error")
+                    return redirect(url_for("settings") + "#info")
 
-            user = Employee.query.get(current_user.id)
-            user.avatar_filename = stored_name
-            db.session.commit()
-            flash("Аватар обновлен.", "success")
-            return redirect(url_for("profile"))
+                if email:
+                    existing = Employee.query.filter(
+                        Employee.email == email, Employee.id != current_user.id
+                    ).first()
+                    if existing:
+                        flash("Этот email уже используется другим пользователем.", "error")
+                        return redirect(url_for("settings") + "#info")
 
-        return render_template("profile.html")
+                user = Employee.query.get(current_user.id)
+                user.full_name = full_name
+                user.position = position
+                user.email = email
+                db.session.commit()
+                flash("Данные профиля обновлены.", "success")
+                return redirect(url_for("settings") + "#info")
+
+            if form_type == "avatar":
+                file = request.files.get("avatar")
+                if not file or not file.filename:
+                    flash("Файл не выбран.", "error")
+                    return redirect(url_for("settings") + "#avatar")
+
+                filename = secure_filename(file.filename)
+                ext = os.path.splitext(filename)[1].lower()
+                if ext not in {".png", ".jpg", ".jpeg", ".webp"}:
+                    flash("Разрешены только PNG/JPG/WEBP.", "error")
+                    return redirect(url_for("settings") + "#avatar")
+
+                avatars_dir = os.path.join(app.root_path, "static", "avatars")
+                os.makedirs(avatars_dir, exist_ok=True)
+                stored_name = f"user_{current_user.id}{ext}"
+                stored_path = os.path.join(avatars_dir, stored_name)
+                file.save(stored_path)
+
+                user = Employee.query.get(current_user.id)
+                user.avatar_filename = stored_name
+                db.session.commit()
+                flash("Аватар обновлен.", "success")
+                return redirect(url_for("settings") + "#avatar")
+
+            flash("Неизвестное действие.", "error")
+            return redirect(url_for("settings"))
+
+        return render_template("settings.html")
 
     @app.get("/")
     @login_required
@@ -490,6 +527,7 @@ def create_app() -> Flask:
             full_name = (request.form.get("full_name") or "").strip()
             position = request.form.get("position") or None
             email = (request.form.get("email") or "").strip() or None
+            role = (request.form.get("role") or "Worker").strip() or "Worker"
 
             if not full_name:
                 flash("Поле \"ФИО\" обязательно для заполнения.", "error")
@@ -503,6 +541,7 @@ def create_app() -> Flask:
                 full_name=full_name,
                 position=position,
                 email=email,
+                role=role if role in {"Admin", "Worker"} else "Worker",
             )
             db.session.add(employee)
             db.session.commit()
@@ -523,6 +562,7 @@ def create_app() -> Flask:
             full_name = (request.form.get("full_name") or "").strip()
             position = request.form.get("position") or None
             email = (request.form.get("email") or "").strip() or None
+            role = (request.form.get("role") or employee.role or "Worker").strip()
 
             if not full_name:
                 flash("Поле \"ФИО\" обязательно для заполнения.", "error")
@@ -535,6 +575,8 @@ def create_app() -> Flask:
             employee.full_name = full_name
             employee.position = position
             employee.email = email
+            if role in {"Admin", "Worker"}:
+                employee.role = role
 
             db.session.commit()
             flash("Данные сотрудника обновлены.", "success")
@@ -556,44 +598,129 @@ def create_app() -> Flask:
     @app.get("/reports")
     @login_required
     def reports():
-        total_projects = Project.query.count()
-        completed_projects = Project.query.filter_by(status="Completed").all()
+        if current_user.role != "Admin":
+            abort(403)
+
+        from datetime import datetime
+
+        date_from_raw = (request.args.get("date_from") or "").strip()
+        date_to_raw = (request.args.get("date_to") or "").strip()
+        status = (request.args.get("status") or "").strip()
+        responsible_id_raw = (request.args.get("responsible_id") or "").strip()
+
+        query = Project.query
+
+        if status in {"In Progress", "Completed", "Expired"}:
+            query = query.filter(Project.status == status)
+
+        if date_from_raw:
+            try:
+                date_from = datetime.strptime(date_from_raw, "%Y-%m-%d").date()
+                query = query.filter(Project.start_date.isnot(None), Project.start_date >= date_from)
+            except ValueError:
+                pass
+
+        if date_to_raw:
+            try:
+                date_to = datetime.strptime(date_to_raw, "%Y-%m-%d").date()
+                query = query.filter(Project.end_date.isnot(None), Project.end_date <= date_to)
+            except ValueError:
+                pass
+
+        if responsible_id_raw:
+            try:
+                responsible_id = int(responsible_id_raw)
+                query = (
+                    query.join(ProjectAssignment)
+                    .filter(ProjectAssignment.employee_id == responsible_id)
+                    .distinct()
+                )
+            except ValueError:
+                pass
+
+        projects = query.order_by(Project.end_date.desc()).all()
+        total_projects = len(projects)
+        completed_projects = [p for p in projects if p.status == "Completed"]
         completed_count = len(completed_projects)
-        total_completed_budget = sum(
-            (p.budget or 0) for p in completed_projects
-        )
+        total_completed_budget = sum((p.budget or 0) for p in completed_projects)
+
+        employees_list = Employee.query.order_by(Employee.full_name.asc()).all()
         return render_template(
             "reports.html",
             total_projects=total_projects,
             completed_count=completed_count,
             total_completed_budget=total_completed_budget,
-            completed_projects=completed_projects,
+            projects=projects,
+            employees=employees_list,
+            filters={
+                "date_from": date_from_raw,
+                "date_to": date_to_raw,
+                "status": status,
+                "responsible_id": responsible_id_raw,
+            },
         )
 
     @app.get("/reports/export")
     @login_required
     def export_reports():
+        if current_user.role != "Admin":
+            abort(403)
         import csv
         from io import StringIO
+        from datetime import datetime
 
-        completed_projects = Project.query.filter_by(status="Completed").all()
+        date_from_raw = (request.args.get("date_from") or "").strip()
+        date_to_raw = (request.args.get("date_to") or "").strip()
+        status = (request.args.get("status") or "").strip()
+        responsible_id_raw = (request.args.get("responsible_id") or "").strip()
+
+        query = Project.query
+        if status in {"In Progress", "Completed", "Expired"}:
+            query = query.filter(Project.status == status)
+
+        if date_from_raw:
+            try:
+                date_from = datetime.strptime(date_from_raw, "%Y-%m-%d").date()
+                query = query.filter(Project.start_date.isnot(None), Project.start_date >= date_from)
+            except ValueError:
+                pass
+
+        if date_to_raw:
+            try:
+                date_to = datetime.strptime(date_to_raw, "%Y-%m-%d").date()
+                query = query.filter(Project.end_date.isnot(None), Project.end_date <= date_to)
+            except ValueError:
+                pass
+
+        if responsible_id_raw:
+            try:
+                responsible_id = int(responsible_id_raw)
+                query = (
+                    query.join(ProjectAssignment)
+                    .filter(ProjectAssignment.employee_id == responsible_id)
+                    .distinct()
+                )
+            except ValueError:
+                pass
+
+        projects = query.order_by(Project.end_date.desc()).all()
 
         output = StringIO()
         writer = csv.writer(output, delimiter=";")
 
-        writer.writerow(["Название проекта", "Дата начала", "Дата окончания", "Бюджет"])
-        for project in completed_projects:
+        writer.writerow(["Название проекта", "Статус", "Дата начала", "Дата окончания", "Бюджет"])
+        for project in projects:
             start_date = project.start_date.strftime("%Y-%m-%d") if project.start_date else ""
             end_date = project.end_date.strftime("%Y-%m-%d") if project.end_date else ""
             budget = f"{project.budget:.2f}" if project.budget is not None else ""
-            writer.writerow([project.title, start_date, end_date, budget])
+            writer.writerow([project.title, project.status, start_date, end_date, budget])
 
         csv_content = output.getvalue()
         output.close()
 
         bom = "\ufeff"
         response = Response(bom + csv_content, mimetype="text/csv; charset=utf-8-sig")
-        response.headers["Content-Disposition"] = "attachment; filename=completed_projects_report.csv"
+        response.headers["Content-Disposition"] = "attachment; filename=projects_report.csv"
         return response
 
     return app

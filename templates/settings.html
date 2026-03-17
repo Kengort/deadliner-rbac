@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки — Project Tracker{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+    <header class="flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-semibold text-slate-900">Настройки</h2>
+            <p class="text-sm text-slate-500 mt-1">Профиль и аватар.</p>
+        </div>
+    </header>
+
+    <section id="info" class="bg-white/80 rounded-2xl border border-slate-200/80 p-6 shadow-lg backdrop-blur">
+        <h3 class="text-sm font-semibold text-slate-800 mb-4">Основная информация</h3>
+
+        <form method="post" class="grid gap-4 sm:grid-cols-2">
+            <input type="hidden" name="form_type" value="info">
+
+            <div class="sm:col-span-2">
+                <label class="block text-sm font-medium text-slate-700">ФИО</label>
+                <input type="text" name="full_name" required value="{{ current_user.full_name }}"
+                       class="mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Должность</label>
+                <input type="text" name="position" value="{{ current_user.position or '' }}"
+                       class="mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Email</label>
+                <input type="email" name="email" value="{{ current_user.email or '' }}"
+                       class="mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+            </div>
+
+            <div class="sm:col-span-2 flex justify-end">
+                <button type="submit"
+                        class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md hover:bg-indigo-700">
+                    Сохранить
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <section id="avatar" class="bg-white/80 rounded-2xl border border-slate-200/80 p-6 shadow-lg backdrop-blur">
+        <h3 class="text-sm font-semibold text-slate-800 mb-4">Управление аватаром</h3>
+
+        <div class="flex items-center gap-4">
+            {% if current_user.avatar_filename %}
+                <img class="h-16 w-16 rounded-full object-cover border border-slate-200"
+                     src="{{ url_for('static', filename='avatars/' ~ current_user.avatar_filename) }}"
+                     alt="avatar">
+            {% else %}
+                <img class="h-16 w-16 rounded-full object-cover border border-slate-200"
+                     src="https://ui-avatars.com/api/?name={{ current_user.full_name|urlencode }}&background=6366f1&color=fff"
+                     alt="avatar">
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data" class="space-y-3">
+                <input type="hidden" name="form_type" value="avatar">
+                <input type="file" name="avatar" accept="image/png,image/jpeg,image/webp"
+                       class="block text-sm text-slate-600 file:mr-4 file:rounded-xl file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-700">
+                <button type="submit"
+                        class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md hover:bg-indigo-700">
+                    Загрузить
+                </button>
+            </form>
+        </div>
+        <p class="mt-4 text-xs text-slate-500">Поддерживаемые форматы: PNG, JPG, WEBP.</p>
+    </section>
+</div>
+{% endblock %}
+
