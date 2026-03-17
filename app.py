@@ -15,6 +15,27 @@ from config import Config
 from models import db, Project, Employee, ProjectAssignment
 
 
+def _parse_date_any(raw: str):
+    """
+    Поддерживает форматы дат:
+    - YYYY-MM-DD (из <input type="date">)
+    - DD.MM.YYYY (из текстовых фильтров)
+    """
+    if not raw:
+        return None
+    raw = raw.strip()
+    if not raw:
+        return None
+    from datetime import datetime
+
+    for fmt in ("%Y-%m-%d", "%d.%m.%Y"):
+        try:
+            return datetime.strptime(raw, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
 def ensure_database_and_tables() -> None:
     """
     Гарантирует наличие базы ProjectDB и всех таблиц.
@@ -345,7 +366,7 @@ def create_app() -> Flask:
             db.session.commit()
 
             flash("Проект успешно добавлен.", "success")
-            return redirect(url_for("project_details", id=project.id))
+            return redirect(url_for("edit_project", id=project.id))
 
         draft_project = Project(title="", status="In Progress")
         draft_project.progress_percent = 10
@@ -356,6 +377,11 @@ def create_app() -> Flask:
             assigned_employees=[],
             available_employees=Employee.query.order_by(Employee.full_name.asc()).all(),
         )
+
+    @app.get("/project/edit/<int:id>")
+    @login_required
+    def edit_project(id: int):
+        return redirect(url_for("project_details", id=id))
 
     @app.post("/project/delete/<int:id>")
     @login_required
@@ -528,6 +554,7 @@ def create_app() -> Flask:
             position = request.form.get("position") or None
             email = (request.form.get("email") or "").strip() or None
             role = (request.form.get("role") or "Worker").strip() or "Worker"
+            file = request.files.get("avatar")
 
             if not full_name:
                 flash("Поле \"ФИО\" обязательно для заполнения.", "error")
@@ -546,6 +573,17 @@ def create_app() -> Flask:
             db.session.add(employee)
             db.session.commit()
 
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                ext = os.path.splitext(filename)[1].lower()
+                if ext in {".png", ".jpg", ".jpeg", ".webp"}:
+                    avatars_dir = os.path.join(app.root_path, "static", "avatars")
+                    os.makedirs(avatars_dir, exist_ok=True)
+                    stored_name = f"employee_{employee.id}{ext}"
+                    file.save(os.path.join(avatars_dir, stored_name))
+                    employee.avatar_filename = stored_name
+                    db.session.commit()
+
             flash("Сотрудник успешно добавлен.", "success")
             return redirect(url_for("employees"))
 
@@ -563,6 +601,7 @@ def create_app() -> Flask:
             position = request.form.get("position") or None
             email = (request.form.get("email") or "").strip() or None
             role = (request.form.get("role") or employee.role or "Worker").strip()
+            file = request.files.get("avatar")
 
             if not full_name:
                 flash("Поле \"ФИО\" обязательно для заполнения.", "error")
@@ -577,6 +616,16 @@ def create_app() -> Flask:
             employee.email = email
             if role in {"Admin", "Worker"}:
                 employee.role = role
+
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                ext = os.path.splitext(filename)[1].lower()
+                if ext in {".png", ".jpg", ".jpeg", ".webp"}:
+                    avatars_dir = os.path.join(app.root_path, "static", "avatars")
+                    os.makedirs(avatars_dir, exist_ok=True)
+                    stored_name = f"employee_{employee.id}{ext}"
+                    file.save(os.path.join(avatars_dir, stored_name))
+                    employee.avatar_filename = stored_name
 
             db.session.commit()
             flash("Данные сотрудника обновлены.", "success")
@@ -601,8 +650,6 @@ def create_app() -> Flask:
         if current_user.role != "Admin":
             abort(403)
 
-        from datetime import datetime
-
         date_from_raw = (request.args.get("date_from") or "").strip()
         date_to_raw = (request.args.get("date_to") or "").strip()
         status = (request.args.get("status") or "").strip()
@@ -613,19 +660,13 @@ def create_app() -> Flask:
         if status in {"In Progress", "Completed", "Expired"}:
             query = query.filter(Project.status == status)
 
-        if date_from_raw:
-            try:
-                date_from = datetime.strptime(date_from_raw, "%Y-%m-%d").date()
-                query = query.filter(Project.start_date.isnot(None), Project.start_date >= date_from)
-            except ValueError:
-                pass
+        date_from = _parse_date_any(date_from_raw)
+        if date_from:
+            query = query.filter(Project.start_date.isnot(None), Project.start_date >= date_from)
 
-        if date_to_raw:
-            try:
-                date_to = datetime.strptime(date_to_raw, "%Y-%m-%d").date()
-                query = query.filter(Project.end_date.isnot(None), Project.end_date <= date_to)
-            except ValueError:
-                pass
+        date_to = _parse_date_any(date_to_raw)
+        if date_to:
+            query = query.filter(Project.end_date.isnot(None), Project.end_date <= date_to)
 
         if responsible_id_raw:
             try:
@@ -653,8 +694,8 @@ def create_app() -> Flask:
             projects=projects,
             employees=employees_list,
             filters={
-                "date_from": date_from_raw,
-                "date_to": date_to_raw,
+                "date_from": date_from.strftime("%d.%m.%Y") if date_from else "",
+                "date_to": date_to.strftime("%d.%m.%Y") if date_to else "",
                 "status": status,
                 "responsible_id": responsible_id_raw,
             },
@@ -667,7 +708,6 @@ def create_app() -> Flask:
             abort(403)
         import csv
         from io import StringIO
-        from datetime import datetime
 
         date_from_raw = (request.args.get("date_from") or "").strip()
         date_to_raw = (request.args.get("date_to") or "").strip()
@@ -678,19 +718,13 @@ def create_app() -> Flask:
         if status in {"In Progress", "Completed", "Expired"}:
             query = query.filter(Project.status == status)
 
-        if date_from_raw:
-            try:
-                date_from = datetime.strptime(date_from_raw, "%Y-%m-%d").date()
-                query = query.filter(Project.start_date.isnot(None), Project.start_date >= date_from)
-            except ValueError:
-                pass
+        date_from = _parse_date_any(date_from_raw)
+        if date_from:
+            query = query.filter(Project.start_date.isnot(None), Project.start_date >= date_from)
 
-        if date_to_raw:
-            try:
-                date_to = datetime.strptime(date_to_raw, "%Y-%m-%d").date()
-                query = query.filter(Project.end_date.isnot(None), Project.end_date <= date_to)
-            except ValueError:
-                pass
+        date_to = _parse_date_any(date_to_raw)
+        if date_to:
+            query = query.filter(Project.end_date.isnot(None), Project.end_date <= date_to)
 
         if responsible_id_raw:
             try:
