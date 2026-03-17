@@ -108,9 +108,17 @@
                                         {% for assignment in project.assignments[:4] %}
                                             {% set parts = assignment.employee.full_name.split() %}
                                             {% set initials = parts[0][0] ~ (parts[-1][0] if parts|length > 1 else '') %}
-                                            <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-indigo-500 text-[11px] font-semibold text-white shadow-sm">
-                                                {{ initials }}
-                                            </div>
+                                            {% if assignment.employee.avatar_filename %}
+                                                <img
+                                                    src="{{ url_for('static', filename='avatars/' ~ assignment.employee.avatar_filename) }}"
+                                                    alt="avatar"
+                                                    class="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm"
+                                                />
+                                            {% else %}
+                                                <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-indigo-500 text-[11px] font-semibold text-white shadow-sm">
+                                                    {{ initials }}
+                                                </div>
+                                            {% endif %}
                                         {% endfor %}
                                         {% if project.assignments|length > 4 %}
                                             <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-slate-200 text-[11px] font-semibold text-slate-700">
@@ -205,9 +213,17 @@
                                         {% for assignment in project.assignments[:4] %}
                                             {% set parts = assignment.employee.full_name.split() %}
                                             {% set initials = parts[0][0] ~ (parts[-1][0] if parts|length > 1 else '') %}
-                                            <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-indigo-500 text-[11px] font-semibold text-white shadow-sm">
-                                                {{ initials }}
-                                            </div>
+                                            {% if assignment.employee.avatar_filename %}
+                                                <img
+                                                    src="{{ url_for('static', filename='avatars/' ~ assignment.employee.avatar_filename) }}"
+                                                    alt="avatar"
+                                                    class="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm"
+                                                />
+                                            {% else %}
+                                                <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-indigo-500 text-[11px] font-semibold text-white shadow-sm">
+                                                    {{ initials }}
+                                                </div>
+                                            {% endif %}
                                         {% endfor %}
                                         {% if project.assignments|length > 4 %}
                                             <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-slate-200 text-[11px] font-semibold text-slate-700">
@@ -294,9 +310,17 @@
                                         {% for assignment in project.assignments[:4] %}
                                             {% set parts = assignment.employee.full_name.split() %}
                                             {% set initials = parts[0][0] ~ (parts[-1][0] if parts|length > 1 else '') %}
-                                            <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-indigo-500 text-[11px] font-semibold text-white shadow-sm">
-                                                {{ initials }}
-                                            </div>
+                                            {% if assignment.employee.avatar_filename %}
+                                                <img
+                                                    src="{{ url_for('static', filename='avatars/' ~ assignment.employee.avatar_filename) }}"
+                                                    alt="avatar"
+                                                    class="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm"
+                                                />
+                                            {% else %}
+                                                <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-indigo-500 text-[11px] font-semibold text-white shadow-sm">
+                                                    {{ initials }}
+                                                </div>
+                                            {% endif %}
                                         {% endfor %}
                                         {% if project.assignments|length > 4 %}
                                             <div class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-slate-200 text-[11px] font-semibold text-slate-700">
