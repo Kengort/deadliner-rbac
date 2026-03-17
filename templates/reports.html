@@ -11,11 +11,58 @@
                 Сводная статистика по выполненным проектам.
             </p>
         </div>
-        <a href="{{ url_for('export_reports') }}"
+        <a href="{{ url_for('export_reports', **request.args) }}"
            class="inline-flex items-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:from-emerald-600 hover:to-teal-700 transition">
             <span class="mr-2">📄</span> Скачать отчет в CSV
         </a>
     </header>
+
+    <section class="bg-white/80 rounded-2xl border border-slate-200/80 p-5 shadow-lg backdrop-blur">
+        <form method="get" class="grid gap-3 sm:grid-cols-4 items-end">
+            <div>
+                <label class="block text-xs font-medium text-slate-600">Период от</label>
+                <input type="date" name="date_from" value="{{ filters.date_from }}"
+                       class="mt-1 w-full h-10 rounded-xl border border-transparent bg-slate-50 px-3 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-600">Период до</label>
+                <input type="date" name="date_to" value="{{ filters.date_to }}"
+                       class="mt-1 w-full h-10 rounded-xl border border-transparent bg-slate-50 px-3 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-600">Статус</label>
+                <select name="status"
+                        class="mt-1 w-full h-10 rounded-xl border border-transparent bg-slate-50 px-3 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+                    <option value="">Все</option>
+                    <option value="In Progress" {% if filters.status == 'In Progress' %}selected{% endif %}>В работе</option>
+                    <option value="Completed" {% if filters.status == 'Completed' %}selected{% endif %}>Завершено</option>
+                    <option value="Expired" {% if filters.status == 'Expired' %}selected{% endif %}>Просрочено</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-600">Ответственный</label>
+                <select name="responsible_id"
+                        class="mt-1 w-full h-10 rounded-xl border border-transparent bg-slate-50 px-3 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+                    <option value="">Все</option>
+                    {% for e in employees %}
+                        <option value="{{ e.id }}" {% if filters.responsible_id|int == e.id %}selected{% endif %}>
+                            {{ e.full_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="sm:col-span-4 flex items-center justify-end gap-3 pt-2">
+                <a href="{{ url_for('reports') }}"
+                   class="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">
+                    Сбросить
+                </a>
+                <button type="submit"
+                        class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md hover:bg-indigo-700">
+                    Применить
+                </button>
+            </div>
+        </form>
+    </section>
 
     <section class="grid gap-4 sm:grid-cols-3">
         <div class="rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-500 to-indigo-700 p-[1px] shadow-lg">
@@ -42,28 +89,38 @@
 
     <section class="space-y-3">
         <div class="flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-slate-800">Завершенные проекты</h3>
+            <h3 class="text-sm font-semibold text-slate-800">Проекты</h3>
         </div>
 
-        {% if completed_projects %}
+        {% if projects %}
             <div class="overflow-hidden rounded-xl bg-white shadow-sm border border-slate-200">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50">
                     <tr>
                         <th class="px-4 py-3 text-left font-semibold text-slate-600">Название</th>
+                        <th class="px-4 py-3 text-right font-semibold text-slate-600">Статус</th>
                         <th class="px-4 py-3 text-right font-semibold text-slate-600">Дата начала</th>
                         <th class="px-4 py-3 text-right font-semibold text-slate-600">Дата окончания</th>
                         <th class="px-4 py-3 text-right font-semibold text-slate-600">Бюджет</th>
                     </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                    {% for project in completed_projects %}
+                    {% for project in projects %}
                         <tr class="hover:bg-slate-50">
                             <td class="px-4 py-3">
                                 <a href="{{ url_for('project_details', id=project.id) }}"
                                    class="font-medium text-slate-900 hover:text-sky-700">
                                     {{ project.title }}
                                 </a>
+                            </td>
+                            <td class="px-4 py-3 text-right text-sm">
+                                {% if project.status == 'Expired' %}
+                                    <span class="inline-flex items-center rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-medium text-rose-700 border border-rose-500/30">Просрочено</span>
+                                {% elif project.status == 'Completed' %}
+                                    <span class="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-500/30">Завершено</span>
+                                {% else %}
+                                    <span class="inline-flex items-center rounded-full bg-amber-400/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-700 border border-amber-400/40">В работе</span>
+                                {% endif %}
                             </td>
                             <td class="px-4 py-3 text-right text-sm text-slate-600">
                                 {% if project.start_date %}{{ project.start_date.strftime('%d.%m.%Y') }}{% else %}—{% endif %}
@@ -85,9 +142,9 @@
             </div>
         {% else %}
             <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
-                <h3 class="text-lg font-semibold text-slate-800">Нет завершенных проектов</h3>
+                <h3 class="text-lg font-semibold text-slate-800">Нет проектов по выбранным фильтрам</h3>
                 <p class="mt-2 text-sm text-slate-500">
-                    Как только проекты будут завершаться, они появятся в этом отчете.
+                    Попробуйте изменить параметры фильтра.
                 </p>
             </div>
         {% endif %}
