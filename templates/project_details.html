@@ -3,62 +3,96 @@
 {% block title %}{{ project.title }} — Детали проекта{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto space-y-6">
+<div class="max-w-6xl mx-auto space-y-8">
     {% set is_admin = current_user.role == 'Admin' %}
     {% set is_worker = current_user.role != 'Admin' %}
-    <section class="bg-white/80 rounded-2xl border border-slate-200/80 p-6 shadow-lg backdrop-blur">
+    <header class="flex items-center justify-between gap-4">
+        <div class="space-y-1">
+            <h1 class="text-2xl font-semibold text-slate-900">
+                {% if project and project.id %}
+                    {{ project.name|default(project.title, true) }}
+                {% else %}
+                    Создание нового проекта
+                {% endif %}
+            </h1>
+        </div>
+        <a href="{{ url_for('index') }}"
+           class="border border-slate-200 text-slate-600 px-4 py-2 rounded-xl hover:bg-slate-50 transition-all whitespace-nowrap">
+            Назад к проектам
+        </a>
+    </header>
+
+    <section class="bg-white/80 rounded-2xl border border-slate-200 p-6 shadow-sm backdrop-blur">
         {% if is_admin %}
             <form method="post" class="space-y-6" id="project-edit-form">
                 <header class="flex items-start justify-between gap-4">
                     <div class="space-y-3 flex-1">
                         <div class="flex items-start justify-between gap-3">
                             <div class="flex-1">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Название проекта</label>
                                 <input
                                     type="text"
                                     name="title"
                                     value="{{ project.title if project else '' }}"
-                                    class="w-full bg-transparent rounded-xl px-0 py-1 text-2xl font-semibold text-slate-900 focus:bg-transparent border border-transparent focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 focus:outline-none"
+                                    placeholder="Введите название..."
+                                    class="w-full bg-transparent rounded-xl px-0 py-1 text-2xl font-semibold text-slate-900 focus:bg-transparent border border-transparent focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 focus:outline-none transition-all"
                                 />
                             </div>
                         </div>
 
-                        <div class="grid gap-4 text-sm text-slate-600 md:grid-cols-2">
+                        <div class="grid gap-6 text-sm text-slate-600 md:grid-cols-2">
                             <div class="space-y-1">
-                                <span class="font-medium text-slate-700 flex items-center gap-1">📅 Сроки</span>
-                                <div class="flex items-center gap-2">
-                                    <input
-                                        type="date"
-                                        name="start_date"
-                                        value="{{ project.start_date.strftime('%Y-%m-%d') if project and project.start_date else '' }}"
-                                        class="w-1/2 rounded-xl border border-transparent bg-slate-50 px-3 py-1 text-xs text-slate-700 shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
-                                    />
+                                <span class="font-medium text-slate-700 flex items-center gap-1">Сроки</span>
+                                <div class="grid grid-cols-[1fr,auto,1fr] items-center gap-2">
+                                    <div class="relative">
+                                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">📅</span>
+                                        <input
+                                            type="text"
+                                            inputmode="numeric"
+                                            name="start_date"
+                                            placeholder="ДД.ММ.ГГГГ"
+                                            value="{{ project.start_date.strftime('%d.%m.%Y') if project and project.start_date else '' }}"
+                                            class="datepicker w-full rounded-xl border border-transparent bg-slate-50 pl-10 pr-3 py-2 text-sm text-slate-700 shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                        />
+                                    </div>
                                     <span class="text-xs text-slate-400">—</span>
-                                    <input
-                                        type="date"
-                                        name="end_date"
-                                        value="{{ project.end_date.strftime('%Y-%m-%d') if project and project.end_date else '' }}"
-                                        class="w-1/2 rounded-xl border border-transparent bg-slate-50 px-3 py-1 text-xs text-slate-700 shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
-                                    />
+                                    <div class="relative">
+                                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">📅</span>
+                                        <input
+                                            type="text"
+                                            inputmode="numeric"
+                                            name="end_date"
+                                            placeholder="ДД.ММ.ГГГГ"
+                                            value="{{ project.end_date.strftime('%d.%m.%Y') if project and project.end_date else '' }}"
+                                            class="datepicker w-full rounded-xl border border-transparent bg-slate-50 pl-10 pr-3 py-2 text-sm text-slate-700 shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                             <div class="space-y-1">
-                                <span class="font-medium text-slate-700 flex items-center gap-1">💰 Бюджет</span>
-                                <input
-                                    type="number"
-                                    name="budget"
-                                    step="0.01"
-                                    min="0"
-                                    value="{{ project.budget if project and project.budget is not none else '' }}"
-                                    class="w-full rounded-xl border border-transparent bg-slate-50 px-3 py-1.5 text-sm text-slate-700 shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
-                                />
-                                <p class="text-[11px] text-slate-400 mt-1">BYN</p>
+                                <span class="font-medium text-slate-700 flex items-center gap-1">Бюджет</span>
+                                <div class="relative">
+                                    <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">💰</span>
+                                    <input
+                                        type="number"
+                                        name="budget"
+                                        step="0.01"
+                                        min="0"
+                                        value="{{ project.budget if project and project.budget is not none else '' }}"
+                                        class="w-full rounded-xl border border-transparent bg-slate-50 pl-10 pr-16 py-2 text-sm text-slate-700 shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                        placeholder="0,00"
+                                    />
+                                    <span class="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                                        <span class="rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 shadow-sm">BYN</span>
+                                    </span>
+                                </div>
                             </div>
                             <div class="space-y-1">
-                                <span class="font-medium text-slate-700 flex items-center gap-1">🏷️ Статус</span>
+                                <span class="font-medium text-slate-700 flex items-center gap-1">Статус</span>
                                 <select
                                     id="project-status"
                                     name="status"
-                                    class="w-full rounded-xl border border-transparent bg-slate-50 px-3 py-1.5 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10
+                                    class="w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all
                                            {% if project and project.status == 'Expired' %}text-rose-700{% elif project and project.status == 'Completed' %}text-emerald-700{% else %}text-slate-700{% endif %}"
                                 >
                                     <option value="In Progress" {% if not project or project.status == 'In Progress' %}selected{% endif %}>In Progress (В работе)</option>
@@ -69,21 +103,17 @@
                         </div>
 
                         <div class="space-y-2">
-                            <label class="text-sm font-semibold text-slate-800 flex items-center gap-1">
+                            <label class="text-sm font-semibold text-slate-800 flex items-center gap-1 font-medium">
                                 📝 Описание проекта
                             </label>
                             <textarea
                                 name="description"
                                 rows="4"
-                                class="w-full rounded-2xl border border-transparent bg-slate-50 px-3 py-2 text-sm text-slate-700 shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
+                                class="w-full rounded-2xl border border-transparent bg-slate-50 px-3 py-2 text-sm text-slate-700 shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
                             >{{ project.description or '' }}</textarea>
                         </div>
                     </div>
                     <div class="flex flex-col items-end gap-3">
-                        <a href="{{ url_for('index') }}"
-                           class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">
-                            Назад к проектам
-                        </a>
                         <div class="flex items-center gap-2 mt-auto">
                             <button type="submit"
                                     id="save-changes"
@@ -94,6 +124,18 @@
                     </div>
                 </header>
             </form>
+
+            {% if project and project.id %}
+                <div class="mt-4 flex justify-end">
+                    <form method="post" action="{{ url_for('delete_project', id=project.id) }}">
+                        <button type="submit"
+                                onclick="return confirm('Вы уверены, что хотите безвозвратно удалить этот проект?')"
+                                class="inline-flex items-center rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1">
+                            Удалить проект
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
         {% else %}
             <header class="flex items-start justify-between gap-4">
                 <div class="space-y-3 flex-1">
@@ -140,22 +182,18 @@
                     </div>
                 </div>
                 <div class="flex flex-col items-end gap-3">
-                    <a href="{{ url_for('index') }}"
-                       class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">
-                        Назад к проектам
-                    </a>
                 </div>
             </header>
         {% endif %}
     </section>
 
-    <section class="space-y-4">
+    <section class="space-y-6">
         <div class="flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-slate-800">Команда проекта</h3>
+            <h3 class="text-sm font-semibold text-slate-800 font-medium">Команда проекта</h3>
         </div>
 
-        <div class="grid gap-4 {% if is_admin %}md:grid-cols-[2fr,1.2fr]{% else %}grid-cols-1{% endif %}">
-            <div class="bg-white/80 rounded-2xl border border-slate-200/80 p-4 shadow-lg backdrop-blur {% if is_worker %}min-h-[22rem]{% endif %}">
+        <div class="grid gap-6 {% if is_admin %}md:grid-cols-[2fr,1.2fr]{% else %}grid-cols-1{% endif %}">
+            <div class="bg-white/80 rounded-2xl border border-slate-200 p-5 shadow-sm backdrop-blur {% if is_worker %}min-h-[22rem]{% endif %}">
                 {% if assigned_employees %}
                     <table class="min-w-full text-sm divide-y divide-slate-200">
                         <thead class="bg-slate-50">
@@ -194,19 +232,25 @@
                         </tbody>
                     </table>
                 {% else %}
-                    <div class="flex flex-col items-center justify-center py-10 text-slate-400">
-                        <div class="mb-3 text-4xl">👥</div>
-                        <p class="text-sm font-medium">Команда пока не назначена</p>
-                        {% if is_admin %}
-                            <p class="mt-1 text-xs text-slate-400">Добавьте сотрудников через форму справа.</p>
-                        {% endif %}
+                    <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-6 py-10 text-center">
+                        <div class="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-200/60 text-slate-400">
+                            👥
+                        </div>
+                        <p class="mt-3 text-sm font-semibold text-slate-600">Команда пока не назначена</p>
+                        <p class="mt-1 text-xs text-slate-400">
+                            {% if is_admin %}
+                                Сохраните проект и добавьте сотрудников в команду.
+                            {% else %}
+                                Здесь появится список участников после назначения администратором.
+                            {% endif %}
+                        </p>
                     </div>
                 {% endif %}
             </div>
 
             {% if is_admin %}
-                <div class="bg-white/80 rounded-2xl border border-slate-200/80 p-4 shadow-lg backdrop-blur">
-                    <h4 class="text-sm font-semibold text-slate-800 mb-3">Добавить сотрудника</h4>
+                <div class="bg-white/80 rounded-2xl border border-slate-200 p-5 shadow-sm backdrop-blur">
+                    <h4 class="text-sm font-semibold text-slate-800 mb-3 font-medium">Добавить сотрудника</h4>
                     {% if project and project.id %}
                         {% if available_employees %}
                             <form method="post" action="{{ url_for('assign_employee', id=project.id) }}" class="space-y-3">
@@ -214,7 +258,8 @@
                                     <label for="employee_id" class="block text-sm font-medium text-slate-700">
                                         Выберите сотрудника
                                     </label>
-                                    <select id="employee_id" name="employee_id" required
+                                    <select id="employee-select" name="employee_id" required
+                                            data-dropdown-direction="up"
                                             class="search-select mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/20">
                                         <option value="">— Выберите из списка —</option>
                                         {% for employee in available_employees %}
@@ -238,9 +283,14 @@
                             </p>
                         {% endif %}
                     {% else %}
-                        <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                            <span class="font-medium text-slate-800">Сначала сохраните проект, чтобы добавить участников команды.</span>
-                            <p class="mt-1 text-xs text-slate-500">После сохранения вы сможете назначать сотрудников в команду.</p>
+                        <div class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-900">
+                            <div class="flex items-start gap-3">
+                                <span class="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-sky-500/10 text-sky-700 border border-sky-200 text-xs">i</span>
+                                <div>
+                                    <div class="font-semibold">Сначала сохраните проект, чтобы добавить участников команды</div>
+                                    <p class="mt-1 text-xs text-sky-800/80">После сохранения появится возможность назначать сотрудников.</p>
+                                </div>
+                            </div>
                         </div>
                     {% endif %}
                 </div>
