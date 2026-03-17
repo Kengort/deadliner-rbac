@@ -8,6 +8,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
     <style>
         html, body {
             font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -20,6 +25,19 @@
                 rgba(252, 165, 165, 0.12) 10px,
                 rgba(252, 165, 165, 0.12) 20px
             );
+        }
+        .ts-control {
+            border-radius: 0.75rem;
+            border-color: transparent;
+            background: rgba(248, 250, 252, 1);
+            padding: 0.5rem 0.75rem;
+            min-height: 2.5rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+        }
+        .ts-wrapper.focus .ts-control {
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.10);
+            border-color: rgba(129, 140, 248, 1);
+            background: rgba(255, 255, 255, 1);
         }
     </style>
 </head>
@@ -164,6 +182,35 @@
         {% block content %}{% endblock %}
     </main>
 </div>
+
+<script>
+    (function () {
+        const init = () => {
+            if (!window.TomSelect) return;
+            document.querySelectorAll('.search-select').forEach((el) => {
+                if (el.tomselect) return;
+                const noResultsText = "Сотрудник не найден";
+                new TomSelect(el, {
+                    create: false,
+                    sortField: { field: "text", order: "asc" },
+                    placeholder: "Начните вводить имя...",
+                    dropdownParent: "body",
+                    render: {
+                        no_results: function () {
+                            return '<div class="no-results px-3 py-2 text-sm text-slate-500">' + noResultsText + '</div>';
+                        }
+                    }
+                });
+            });
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    })();
+</script>
 </body>
 </html>
 

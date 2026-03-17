@@ -25,8 +25,27 @@
         </a>
     </header>
 
-    <form method="post" class="space-y-6 bg-white/90 rounded-2xl border border-slate-200/80 p-6 shadow-lg backdrop-blur">
+    <form method="post" enctype="multipart/form-data" class="space-y-6 bg-white/90 rounded-2xl border border-slate-200/80 p-6 shadow-lg backdrop-blur">
         <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Аватар</label>
+                <div class="mt-2 flex items-center gap-4">
+                    {% if employee and employee.avatar_filename %}
+                        <img id="avatar-preview" class="h-12 w-12 rounded-full object-cover border border-slate-200"
+                             src="{{ url_for('static', filename='avatars/' ~ employee.avatar_filename) }}"
+                             alt="avatar">
+                    {% else %}
+                        {% set name = (employee.full_name if employee else 'User') %}
+                        <img id="avatar-preview" class="h-12 w-12 rounded-full object-cover border border-slate-200"
+                             src="https://ui-avatars.com/api/?name={{ name|urlencode }}&background=6366f1&color=fff"
+                             alt="avatar">
+                    {% endif %}
+
+                    <input id="avatar-input" type="file" name="avatar" accept="image/*"
+                           class="block text-sm text-slate-600 file:mr-4 file:rounded-xl file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-700">
+                </div>
+                <p class="mt-2 text-xs text-slate-500">PNG/JPG/WEBP. Для новых сотрудников можно загрузить после сохранения.</p>
+            </div>
             <div>
                 <label for="full_name" class="block text-sm font-medium text-slate-700">ФИО</label>
                 <input type="text" id="full_name" name="full_name" required
@@ -71,5 +90,19 @@
         </div>
     </form>
 </div>
+
+<script>
+    (function () {
+        const input = document.getElementById('avatar-input');
+        const img = document.getElementById('avatar-preview');
+        if (!input || !img) return;
+        input.addEventListener('change', () => {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            const url = URL.createObjectURL(file);
+            img.src = url;
+        });
+    })();
+</script>
 {% endblock %}
 
