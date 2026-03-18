@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Подтверждение email — Flux{% endblock %}
+
+{% block content %}
+<div class="min-h-[80vh] flex items-center justify-center">
+    <div class="max-w-md w-full mx-auto">
+        <form method="post"
+              class="w-full bg-white/95 backdrop-blur-md rounded-2xl border border-slate-100 p-10 shadow-xl space-y-8">
+            <div class="space-y-2">
+                <h1 class="text-3xl font-extrabold tracking-tight text-slate-950">Подтверждение email</h1>
+                <p class="text-sm text-slate-500">Мы отправили 6‑значный код на <span class="font-medium text-slate-800">{{ email }}</span>.</p>
+            </div>
+
+            <div class="space-y-3">
+                <label class="block text-[10px] uppercase tracking-widest font-bold text-slate-400">Код подтверждения</label>
+                <div class="flex justify-between gap-2">
+                    {% for i in range(1, 7) %}
+                        <input
+                            type="text"
+                            inputmode="numeric"
+                            maxlength="1"
+                            name="code{{ i }}"
+                            class="w-10 h-12 rounded-xl border border-slate-200 bg-white text-center text-lg font-semibold text-slate-900 shadow-sm focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
+                        />
+                    {% endfor %}
+                </div>
+                <p class="text-[11px] text-slate-400">Срок действия кода — 10 минут.</p>
+            </div>
+
+            <div class="flex items-center justify-between gap-3">
+                <button type="submit" name="action" value="verify"
+                        class="flex-1 inline-flex justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200 hover:from-indigo-700 hover:to-violet-800 transition-all">
+                    Подтвердить
+                </button>
+                <button type="submit" id="resend-btn" name="action" value="resend"
+                        class="inline-flex justify-center rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 shadow-sm hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                    Отправить код снова
+                </button>
+            </div>
+
+            <p id="resend-hint" class="text-[11px] text-slate-400 text-center hidden">
+                Повторная отправка будет доступна через <span id="resend-timer">60</span> c.
+            </p>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const inputs = Array.from(document.querySelectorAll('input[name^="code"]'));
+        if (!inputs.length) return;
+
+        inputs.forEach((input, idx) => {
+            input.addEventListener('input', (e) => {
+                const val = e.target.value.replace(/\D/g, '');
+                e.target.value = val.slice(0, 1);
+                if (val && idx < inputs.length - 1) {
+                    inputs[idx + 1].focus();
+                    inputs[idx + 1].select();
+                }
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+                    inputs[idx - 1].focus();
+                    inputs[idx - 1].select();
+                }
+            });
+        });
+
+        const resendBtn = document.getElementById('resend-btn');
+        const hint = document.getElementById('resend-hint');
+        const timerSpan = document.getElementById('resend-timer');
+        if (resendBtn && hint && timerSpan) {
+            let countdown = 60;
+            const startTimer = () => {
+                resendBtn.disabled = true;
+                hint.classList.remove('hidden');
+                countdown = 60;
+                timerSpan.textContent = countdown.toString();
+                const interval = setInterval(() => {
+                    countdown -= 1;
+                    timerSpan.textContent = countdown.toString();
+                    if (countdown <= 0) {
+                        clearInterval(interval);
+                        resendBtn.disabled = false;
+                        hint.classList.add('hidden');
+                    }
+                }, 1000);
+            };
+            // сразу запускаем таймер при загрузке
+            startTimer();
+        }
+    })();
+</script>
+{% endblock %}
+

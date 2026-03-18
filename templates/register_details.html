@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Регистрация — Flux{% endblock %}
+{% block title %}Данные профиля — Flux{% endblock %}
 
 {% block content %}
 <div class="min-h-[80vh] flex items-center justify-center">
@@ -8,7 +8,14 @@
         <form method="post"
               class="w-full bg-white/95 backdrop-blur-md rounded-2xl border border-slate-100 p-10 shadow-xl space-y-8">
             <div class="space-y-2">
-                <h1 class="text-4xl font-extrabold tracking-tight text-slate-950">Создать аккаунт Flux</h1>
+                <h1 class="text-3xl font-extrabold tracking-tight text-slate-950">Завершение регистрации</h1>
+                <p class="text-sm text-slate-500">Укажите данные профиля для аккаунта Flux.</p>
+            </div>
+
+            <div class="space-y-1">
+                <label class="block text-[10px] uppercase tracking-widest font-bold text-slate-400">Email</label>
+                <input type="email" name="email" value="{{ email }}" readonly
+                       class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 shadow-sm cursor-not-allowed">
             </div>
 
             <div class="space-y-1">
@@ -24,12 +31,6 @@
             </div>
 
             <div class="space-y-1">
-                <label class="block text-[10px] uppercase tracking-widest font-bold text-slate-400">Email</label>
-                <input type="email" name="email" required
-                       class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all">
-            </div>
-
-            <div class="space-y-1">
                 <label class="block text-[10px] uppercase tracking-widest font-bold text-slate-400">Пароль</label>
                 <input type="password" name="password" required
                        class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all">
@@ -37,13 +38,8 @@
 
             <button type="submit"
                     class="w-full inline-flex justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200 hover:from-indigo-700 hover:to-violet-800 transition-all">
-                Создать аккаунт
+                Создать аккаунт Flux
             </button>
-
-            <p class="text-[11px] text-slate-500 text-center">
-                Уже есть аккаунт?
-                <a href="{{ url_for('login') }}" class="text-indigo-600 hover:text-indigo-700 font-medium">Войти</a>
-            </p>
         </form>
     </div>
 </div>

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, Response, abort
+from flask import Flask, render_template, request, redirect, url_for, flash, Response, abort, session, current_app
 from flask_login import (
     LoginManager,
     current_user,
@@ -11,6 +11,8 @@ import pyodbc
 import os
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
+
+from flask_mail import Mail, Message
 
 from config import Config
 from models import db, Project, Employee, ProjectAssignment
@@ -40,6 +42,76 @@ def compute_progress_percent(p: Project, today=None) -> int:
 
     # Для проектов без дат показываем базовое значение
     return 0
+
+
+def _generate_otp_code(length: int = 6) -> str:
+    import random
+    return "".join(str(random.randint(0, 9)) for _ in range(length))
+
+
+def send_otp_email(mail: Mail, target_email: str, code: str) -> None:
+    """
+    Отправляет HTML‑письмо с 6‑значным кодом подтверждения Flux.
+    """
+    subject = "Код подтверждения Flux"
+    logo_cid = "flux_logo_clear"
+    html_body = f"""
+    <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#0f172a; padding:48px 0;">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width:480px; margin:0 auto; background:#020617; border-radius:24px; overflow:hidden; box-shadow:0 24px 80px rgba(15,23,42,0.85);">
+        <tr>
+          <td style="padding:28px 32px 12px 32px; border-bottom:1px solid rgba(148,163,184,0.25);">
+            <div style="text-align:center; padding:20px 0 4px 0;">
+              <img src="cid:flux_logo_clear" alt="FLUX" style="display:inline-block; width:100px; max-width:100%; border:none; filter:brightness(0) invert(1);">
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:24px 32px 8px 32px; color:#e5e7eb;">
+            <h1 style="margin:0 0 4px 0; font-size:20px; font-weight:600;">Подтвердите ваш email</h1>
+            <p style="margin:0; font-size:13px; color:#9ca3af;">Введите этот код на странице регистрации Flux, чтобы продолжить.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:24px 32px;">
+            <div style="text-align:center; padding:18px 16px; border-radius:18px; background:rgba(15,23,42,0.85); border:1px solid rgba(79,70,229,0.6); box-shadow:0 0 0 1px rgba(15,23,42,0.9) inset;">
+              <div style="font-size:32px; letter-spacing:0.4em; font-weight:800; color:#e5e7eb; text-transform:uppercase;">
+                {" ".join(code)}
+              </div>
+              <p style="margin:10px 0 0 0; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:#6b7280;">
+                Код действует 10 минут
+              </p>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 32px 28px 32px; color:#6b7280; font-size:11px;">
+            Если вы не запрашивали регистрацию во Flux, просто проигнорируйте это письмо.
+          </td>
+        </tr>
+      </table>
+    </div>
+    """
+    msg = Message(subject=subject, recipients=[target_email], html=html_body)
+
+    # Встраиваем логотип как inline‑картинку по CID
+    try:
+        img_path = os.path.join(current_app.root_path, "static", "images", "flux_wordmark_final.png")
+        with open(img_path, "rb") as f:
+            logo_data = f.read()
+        msg.attach(
+            "flux_wordmark_final.png",
+            "image/png",
+            logo_data,
+            headers={
+                "Content-ID": "<flux_logo_clear>",
+                "Content-Disposition": "inline",
+            },
+        )
+    except Exception:
+        # Если логотип недоступен, просто отправляем письмо без изображения
+        pass
+
+    mail.send(msg)
 
 
 def _parse_date_any(raw: str):
@@ -130,6 +202,17 @@ def create_app() -> Flask:
     login_manager.login_view = "login"
     login_manager.init_app(app)
 
+    # Flask-Mail
+    app.config.update(
+        MAIL_SERVER="smtp.mail.ru",
+        MAIL_PORT=465,
+        MAIL_USE_SSL=True,
+        MAIL_USERNAME="noreply.flux@mail.ru",
+        MAIL_PASSWORD="cD04V5yuHNebyGWeDxrb",
+        MAIL_DEFAULT_SENDER=("Flux", "noreply.flux@mail.ru"),
+    )
+    mail = Mail(app)
+
     @login_manager.user_loader
     def load_user(user_id: str):
         try:
@@ -167,31 +250,107 @@ def create_app() -> Flask:
 
     @app.route("/register", methods=["GET", "POST"])
     def register():
+        """
+        Шаг 1: ввод email для отправки OTP.
+        """
         if request.method == "POST":
-            full_name = (request.form.get("full_name") or "").strip()
-            position = (request.form.get("position") or "").strip() or None
             email = (request.form.get("email") or "").strip().lower()
-            password = request.form.get("password") or ""
-
-            if not full_name or not email or not password:
-                flash("Заполните ФИО, email и пароль.", "error")
-                return render_template("register.html")
+            if not email:
+                flash("Введите email.", "error")
+                return render_template("register_email.html")
 
             existing = Employee.query.filter(Employee.email == email).first()
             if existing:
                 flash("Пользователь с таким email уже существует.", "error")
-                return render_template("register.html")
+                return render_template("register_email.html")
+
+            code = _generate_otp_code()
+            session["register_email"] = email
+            session["register_otp"] = code
+            session["email_verified"] = False
+
+            send_otp_email(mail, email, code)
+            flash("Мы отправили код подтверждения на указанный email.", "info")
+            return redirect(url_for("verify"))
+
+        return render_template("register_email.html")
+
+    @app.route("/verify", methods=["GET", "POST"])
+    def verify():
+        """
+        Шаг 2: ввод 6‑значного OTP кода.
+        """
+        email = session.get("register_email")
+        if not email:
+            flash("Сначала укажите email для регистрации.", "error")
+            return redirect(url_for("register"))
+
+        if request.method == "POST":
+            action = request.form.get("action") or "verify"
+            if action == "resend":
+                code = _generate_otp_code()
+                session["register_otp"] = code
+                send_otp_email(mail, email, code)
+                flash("Новый код отправлен на email.", "info")
+                return redirect(url_for("verify"))
+
+            entered_code = "".join(
+                (request.form.get(f"code{i}") or "").strip() for i in range(1, 7)
+            )
+            expected = (session.get("register_otp") or "").strip()
+            if not entered_code or len(entered_code) != 6:
+                flash("Введите полный 6‑значный код.", "error")
+                return render_template("verify.html", email=email)
+
+            if entered_code != expected:
+                flash("Неверный код подтверждения.", "error")
+                return render_template("verify.html", email=email)
+
+            session["email_verified"] = True
+            flash("Email подтвержден. Заполните данные профиля.", "success")
+            return redirect(url_for("register_details"))
+
+        return render_template("verify.html", email=email)
+
+    @app.route("/register/details", methods=["GET", "POST"])
+    def register_details():
+        """
+        Шаг 3: ввод ФИО, должности и пароля. Создание пользователя.
+        """
+        email = session.get("register_email")
+        if not email or not session.get("email_verified"):
+            flash("Сначала подтвердите email.", "error")
+            return redirect(url_for("register"))
+
+        if request.method == "POST":
+            full_name = (request.form.get("full_name") or "").strip()
+            position = (request.form.get("position") or "").strip() or None
+            password = request.form.get("password") or ""
+
+            if not full_name or not password:
+                flash("Заполните ФИО и пароль.", "error")
+                return render_template("register_details.html", email=email)
+
+            existing = Employee.query.filter(Employee.email == email).first()
+            if existing:
+                flash("Пользователь с таким email уже существует.", "error")
+                return redirect(url_for("login"))
 
             user = Employee(full_name=full_name, position=position, email=email, role="Worker")
             user.set_password(password)
             db.session.add(user)
             db.session.commit()
 
+            # очистка регистрационных данных в сессии
+            session.pop("register_email", None)
+            session.pop("register_otp", None)
+            session.pop("email_verified", None)
+
             login_user(user)
             flash("Аккаунт создан.", "success")
             return redirect(url_for("index"))
 
-        return render_template("register.html")
+        return render_template("register_details.html", email=email)
 
     @app.route("/profile", methods=["GET", "POST"])
     @login_required
@@ -811,6 +970,6 @@ def create_app() -> Flask:
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
 
 
