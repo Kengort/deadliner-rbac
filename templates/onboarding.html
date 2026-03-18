@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Onboarding — Flux{% endblock %}
+
+{% block content %}
+<div class="min-h-screen w-full flex items-center justify-center bg-white/90 backdrop-blur-sm">
+    <div class="max-w-5xl w-full mx-auto space-y-10">
+        <div class="flex justify-center">
+            <img src="{{ url_for('static', filename='images/flux_wordmark_final.png') }}" alt="Flux" class="w-32 mx-auto mb-4">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Create -->
+            <div class="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-100 shadow-xl p-10">
+                <div class="flex items-center gap-3 mb-8">
+                    <div class="h-12 w-12 rounded-2xl bg-indigo-600/10 text-indigo-700 flex items-center justify-center">
+                        <i data-lucide="plus-circle" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-semibold text-slate-900">Создать Workspace</h2>
+                        <p class="text-sm text-slate-500">Начните с нового пространства.</p>
+                    </div>
+                </div>
+
+                <form method="post" action="{{ url_for('workspace_create') }}" class="space-y-5">
+                    <div>
+                        <label class="block text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1">Название</label>
+                        <input name="name" required
+                               class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                               placeholder="Например: Команда продукта">
+                    </div>
+                    <button type="submit"
+                            class="w-full inline-flex items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-700 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 hover:from-indigo-700 hover:to-violet-800 transition-all">
+                        Создать
+                    </button>
+                </form>
+            </div>
+
+            <!-- Join -->
+            <div class="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-100 shadow-xl p-10">
+                <div class="flex items-center gap-3 mb-8">
+                    <div class="h-12 w-12 rounded-2xl bg-emerald-600/10 text-emerald-700 flex items-center justify-center">
+                        <i data-lucide="key-round" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-semibold text-slate-900">Присоединиться</h2>
+                        <p class="text-sm text-slate-500">Введите инвайт‑код.</p>
+                    </div>
+                </div>
+
+                <form method="post" action="{{ url_for('workspace_join') }}" class="space-y-5">
+                    <div>
+                        <label class="block text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1">Invite Code</label>
+                        <input name="invite_code" required
+                               class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                               placeholder="Например: A1B2C3D4E5F6">
+                    </div>
+                    <button type="submit"
+                            class="w-full inline-flex items-center justify-center rounded-full bg-white border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-all">
+                        Войти по коду
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

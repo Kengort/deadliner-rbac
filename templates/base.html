@@ -99,24 +99,56 @@
         }
         /* Примечание: dropdown Tom Select рендерится в body (dropdownParent: body),
            поэтому направление задаём через dropdownDirection в JS. */
+
+        /* Lightweight custom scrollbar helpers (Tailwind-like) */
+        .scrollbar-thin {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(99, 102, 241, 0.9) rgba(226, 232, 240, 0.6);
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: rgba(226, 232, 240, 0.45);
+            border-radius: 999px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.85);
+            border-radius: 999px;
+            border: 2px solid rgba(226, 232, 240, 0.45);
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: rgba(79, 70, 229, 0.95);
+        }
+        .scrollbar-thumb-indigo-500::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.85);
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 antialiased">
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen overflow-y-auto">
 <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
   <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-indigo-50/50 blur-[120px]"></div>
   <div class="absolute top-[20%] -right-[10%] w-[30%] h-[30%] rounded-full bg-rose-50/30 blur-[100px]"></div>
 </div>
 <div class="min-h-screen flex bg-transparent">
     {% set user_role = current_user.role if current_user.is_authenticated else None %}
+    {% set show_chrome = current_user.is_authenticated and request.path not in ['/onboarding', '/hub'] %}
     <!-- Sidebar -->
-    {% if current_user.is_authenticated %}
+    {% if show_chrome %}
         <aside class="fixed inset-y-4 left-4 z-40 w-64 bg-white/70 text-slate-900 flex flex-col rounded-2xl border-r border-slate-200/60 shadow-2xl backdrop-blur-md">
             <div class="px-6 py-5 border-b border-slate-200/60 flex items-center justify-center">
-                <img
-                    src="{{ url_for('static', filename='images/flux_wordmark_final.png') }}"
-                    alt="Flux"
-                    style="width: 120px; max-width: 100%; border: none;"
-                />
+                <button
+                    type="button"
+                    onclick="window.location.href='{{ url_for('hub') }}'"
+                    class="transition-transform duration-200 hover:scale-105 focus:outline-none"
+                >
+                    <img
+                        src="{{ url_for('static', filename='images/flux_wordmark_final.png') }}"
+                        alt="Flux"
+                        style="width: 120px; max-width: 100%; border: none;"
+                    />
+                </button>
             </div>
             <nav class="flex-1 px-4 py-4 space-y-1 text-sm">
                 <a href="{{ url_for('index') }}"
@@ -162,59 +194,9 @@
     {% endif %}
 
     <!-- Main content -->
-    <main class="flex-1 {% if current_user.is_authenticated %}pl-72{% else %}pl-6{% endif %} pr-6 py-6">
-        {% if current_user.is_authenticated %}
-            <div class="relative z-40 mb-6 min-h-[3.25rem]">
-                <div class="absolute right-0 top-0">
-                    <div class="relative">
-                        <button id="profile-btn"
-                                class="flex items-center gap-2 rounded-2xl bg-white/70 backdrop-blur border border-slate-200/80 px-2.5 py-1.5 shadow-sm hover:bg-white">
-                            {% if current_user.avatar_filename %}
-                                <img class="h-8 w-8 rounded-full object-cover border border-slate-200"
-                                     src="{{ url_for('static', filename='avatars/' ~ current_user.avatar_filename) }}"
-                                     alt="avatar">
-                            {% else %}
-                                <img class="h-8 w-8 rounded-full object-cover border border-slate-200"
-                                     src="https://ui-avatars.com/api/?name={{ current_user.full_name|urlencode }}&background=6366f1&color=fff"
-                                     alt="avatar">
-                            {% endif %}
-                            <div class="text-left leading-tight hidden sm:block">
-                                <div class="text-sm font-semibold text-slate-900">{{ current_user.full_name }}</div>
-                                <div class="text-[11px] text-slate-500">{{ current_user.role }}</div>
-                            </div>
-                            <div class="text-slate-400 text-xs">▾</div>
-                        </button>
-
-                        <div id="profile-menu"
-                             class="hidden absolute right-0 mt-2 w-56 rounded-2xl bg-white/90 backdrop-blur border border-slate-200/80 shadow-xl overflow-hidden">
-                            <a href="{{ url_for('settings') }}"
-                               class="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50">Настройки</a>
-                            <a href="{{ url_for('logout') }}"
-                               class="block px-4 py-3 text-sm text-rose-700 hover:bg-rose-50">Выйти</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <script>
-                (function () {
-                    const btn = document.getElementById('profile-btn');
-                    const menu = document.getElementById('profile-menu');
-                    if (!btn || !menu) return;
-                    const close = () => menu.classList.add('hidden');
-
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        menu.classList.toggle('hidden');
-                    });
-                    document.addEventListener('click', close);
-                    document.addEventListener('keydown', (e) => {
-                        if (e.key === 'Escape') close();
-                    });
-                })();
-            </script>
+    <main class="flex-1 {% if show_chrome %}pl-72{% else %}pl-6{% endif %} pr-6 py-6">
+        {% if show_chrome %}
         {% endif %}
-
         {% with messages = get_flashed_messages(with_categories=True) %}
             {% if messages %}
                 <div class="fixed right-6 top-6 z-50 space-y-3">

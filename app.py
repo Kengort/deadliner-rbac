@@ -15,7 +15,7 @@ from werkzeug.security import generate_password_hash
 from flask_mail import Mail, Message
 
 from config import Config
-from models import db, Project, Employee, ProjectAssignment
+from models import db, Project, Employee, ProjectAssignment, Workspace, UserWorkspace
 
 
 def compute_progress_percent(p: Project, today=None) -> int:
@@ -47,6 +47,13 @@ def compute_progress_percent(p: Project, today=None) -> int:
 def _generate_otp_code(length: int = 6) -> str:
     import random
     return "".join(str(random.randint(0, 9)) for _ in range(length))
+
+
+def _generate_invite_code(length: int = 12) -> str:
+    import secrets
+    import string
+    alphabet = string.ascii_uppercase + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
 def send_otp_email(mail: Mail, target_email: str, code: str) -> None:
@@ -191,6 +198,39 @@ def ensure_database_and_tables() -> None:
                 """
             )
 
+            # Workspaces / UserWorkspaces tables are created via SQLAlchemy create_all().
+            # Добавляем WorkspaceID в Projects без миграций
+            cursor.execute(
+                """
+                IF COL_LENGTH('Projects', 'WorkspaceID') IS NULL
+                    ALTER TABLE Projects ADD WorkspaceID INT NULL;
+                """
+            )
+
+    # Инициализация дефолтного workspace для существующих данных
+    try:
+        from sqlalchemy import select
+        existing_ws = db.session.execute(select(Workspace).limit(1)).scalars().first()
+        if not existing_ws:
+            owner = Employee.query.filter(Employee.role == "Admin").order_by(Employee.id.asc()).first()
+            if not owner:
+                owner = Employee.query.order_by(Employee.id.asc()).first()
+            if owner:
+                invite = _generate_invite_code()
+                ws = Workspace(name="Flux Workspace", invite_code=invite, owner_id=owner.id)
+                db.session.add(ws)
+                db.session.flush()
+                db.session.add(UserWorkspace(workspace_id=ws.id, user_id=owner.id, role="owner"))
+
+                # привязываем все существующие проекты
+                Project.query.filter(Project.workspace_id.is_(None)).update(
+                    {"workspace_id": ws.id}, synchronize_session=False
+                )
+                db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+
 
 def create_app() -> Flask:
     app = Flask(__name__)
@@ -198,18 +238,28 @@ def create_app() -> Flask:
 
     db.init_app(app)
 
+    # Optional .env support (no hard dependency)
+    try:
+        from dotenv import load_dotenv  # type: ignore
+        load_dotenv()
+    except Exception:
+        pass
+
     login_manager = LoginManager()
     login_manager.login_view = "login"
     login_manager.init_app(app)
 
-    # Flask-Mail
+    # Flask-Mail (loaded from environment / .env)
     app.config.update(
-        MAIL_SERVER="smtp.mail.ru",
-        MAIL_PORT=465,
-        MAIL_USE_SSL=True,
-        MAIL_USERNAME="noreply.flux@mail.ru",
-        MAIL_PASSWORD="cD04V5yuHNebyGWeDxrb",
-        MAIL_DEFAULT_SENDER=("Flux", "noreply.flux@mail.ru"),
+        MAIL_SERVER=os.getenv("MAIL_SERVER", "smtp.mail.ru"),
+        MAIL_PORT=int(os.getenv("MAIL_PORT", "465")),
+        MAIL_USE_SSL=os.getenv("MAIL_USE_SSL", "True").lower() in {"1", "true", "yes", "on"},
+        MAIL_USERNAME=os.getenv("MAIL_USERNAME", ""),
+        MAIL_PASSWORD=os.getenv("MAIL_PASSWORD", ""),
+        MAIL_DEFAULT_SENDER=(
+            os.getenv("MAIL_DEFAULT_SENDER_NAME", "Flux"),
+            os.getenv("MAIL_DEFAULT_SENDER_EMAIL", os.getenv("MAIL_USERNAME", "")),
+        ),
     )
     mail = Mail(app)
 
@@ -222,6 +272,56 @@ def create_app() -> Flask:
 
     with app.app_context():
         ensure_database_and_tables()
+
+    def _get_current_workspace():
+        """
+        Возвращает текущий workspace только из session['workspace_id'].
+        Выбор конкретного пространства теперь осуществляется через /hub.
+        """
+        if not current_user.is_authenticated:
+            return None
+        ws_id = session.get("workspace_id")
+        if not ws_id:
+            return None
+        return db.session.get(Workspace, int(ws_id))
+
+    def _workspace_role(workspace: Workspace | None) -> str | None:
+        if not workspace or not current_user.is_authenticated:
+            return None
+        if workspace.owner_id == current_user.id:
+            return "owner"
+        m = UserWorkspace.query.filter_by(workspace_id=workspace.id, user_id=current_user.id).first()
+        if not m:
+            return None
+        return (m.role or "member").lower()
+
+    def require_workspace_role(*allowed: str):
+        def deco(fn):
+            from functools import wraps
+            @wraps(fn)
+            def wrapper(*args, **kwargs):
+                ws = _get_current_workspace()
+                if not ws:
+                    abort(403)
+                role = _workspace_role(ws)
+                if role not in allowed:
+                    abort(403)
+                return fn(*args, **kwargs)
+            return wrapper
+        return deco
+
+    @app.context_processor
+    def inject_workspace():
+        ws = _get_current_workspace()
+        return {
+            "workspace": ws,
+            "workspace_role": _workspace_role(ws),
+        }
+
+    @app.before_request
+    def _ensure_workspace_selected():
+        # просто прогреваем выбор workspace для последующих роутов/шаблонов
+        _get_current_workspace()
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
@@ -237,6 +337,9 @@ def create_app() -> Flask:
 
             login_user(user, remember=remember)
             flash("Вы вошли в систему.", "success")
+            pending_invite = session.pop("pending_invite_code", None)
+            if pending_invite:
+                return redirect(url_for("join_workspace", invite_code=pending_invite))
             return redirect(url_for("index"))
 
         return render_template("login.html")
@@ -247,6 +350,155 @@ def create_app() -> Flask:
         logout_user()
         flash("Вы вышли из системы.", "success")
         return redirect(url_for("login"))
+
+    @app.get("/join/<invite_code>")
+    @login_required
+    def join_workspace(invite_code: str):
+        ws = Workspace.query.filter(Workspace.invite_code == invite_code).first()
+        if not ws:
+            flash("Неверный код приглашения.", "error")
+            return redirect(url_for("index"))
+
+        existing = UserWorkspace.query.filter_by(workspace_id=ws.id, user_id=current_user.id).first()
+        if existing or ws.owner_id == current_user.id:
+            session["workspace_id"] = ws.id
+            flash("Вы уже состоите в этом workspace.", "info")
+            return redirect(url_for("index"))
+
+        db.session.add(UserWorkspace(workspace_id=ws.id, user_id=current_user.id, role="member"))
+        db.session.commit()
+        session["workspace_id"] = ws.id
+        flash("Вы присоединились к workspace.", "success")
+        return redirect(url_for("index"))
+
+    @app.route("/create_workspace", methods=["GET", "POST"])
+    @login_required
+    def create_workspace():
+        if request.method == "POST":
+            name = (request.form.get("name") or "").strip() or "Flux Workspace"
+            invite = _generate_invite_code()
+            ws = Workspace(name=name, invite_code=invite, owner_id=current_user.id)
+            db.session.add(ws)
+            db.session.flush()
+            db.session.add(UserWorkspace(workspace_id=ws.id, user_id=current_user.id, role="owner"))
+            db.session.commit()
+            session["workspace_id"] = ws.id
+            flash("Workspace создан.", "success")
+            return redirect(url_for("index"))
+
+        return render_template("create_workspace.html")
+
+    @app.route("/join_workspace", methods=["GET", "POST"])
+    @login_required
+    def join_workspace_form():
+        if request.method == "POST":
+            invite_code = (request.form.get("invite_code") or "").strip()
+            if not invite_code:
+                flash("Введите invite code.", "error")
+                return render_template("join_workspace.html")
+            return redirect(url_for("join_workspace", invite_code=invite_code))
+
+        return render_template("join_workspace.html")
+
+    @app.route("/onboarding")
+    @login_required
+    def onboarding():
+        if _get_current_workspace():
+            return redirect(url_for("index"))
+        return render_template("onboarding.html")
+
+    @app.route("/hub")
+    @login_required
+    def hub():
+        """
+        Экран выбора рабочего пространства ("The Hub").
+        Сбрасывает текущий workspace в сессии и показывает все доступные пользователю.
+        """
+        # очищаем выбор активного workspace
+        session.pop("workspace_id", None)
+
+        memberships = UserWorkspace.query.join(Workspace, Workspace.id == UserWorkspace.workspace_id).filter(
+            UserWorkspace.user_id == current_user.id
+        ).order_by(Workspace.name.asc()).all()
+
+        if not memberships:
+            # нет ни одного workspace — отправляем на онбординг
+            return redirect(url_for("onboarding"))
+
+        workspaces = []
+        for m in memberships:
+            ws = m.workspace
+            projects_count = Project.query.filter_by(workspace_id=ws.id).count()
+            members_count = UserWorkspace.query.filter_by(workspace_id=ws.id).count()
+            workspaces.append(
+                {
+                    "id": ws.id,
+                    "name": ws.name,
+                    "role": "owner" if ws.owner_id == current_user.id else (m.role or "member"),
+                    "projects_count": projects_count,
+                    "members_count": members_count,
+                }
+            )
+        return render_template("hub.html", workspaces=workspaces)
+
+    @app.get("/select_workspace/<int:workspace_id>")
+    @login_required
+    def select_workspace(workspace_id: int):
+        """
+        Выбор workspace из списка на /hub.
+        """
+        ws = db.session.get(Workspace, workspace_id)
+        if not ws:
+            abort(404)
+
+        membership = UserWorkspace.query.filter_by(
+            workspace_id=workspace_id, user_id=current_user.id
+        ).first()
+        if not membership and ws.owner_id != current_user.id:
+            abort(403)
+
+        session["workspace_id"] = workspace_id
+        return redirect(url_for("index"))
+
+    @app.post("/workspace/create")
+    @login_required
+    def workspace_create():
+        if _get_current_workspace():
+            return redirect(url_for("index"))
+        name = (request.form.get("name") or "").strip()
+        if not name:
+            flash("Введите название workspace.", "error")
+            return redirect(url_for("onboarding"))
+        invite = _generate_invite_code()
+        ws = Workspace(name=name, invite_code=invite, owner_id=current_user.id)
+        db.session.add(ws)
+        db.session.flush()
+        db.session.add(UserWorkspace(workspace_id=ws.id, user_id=current_user.id, role="owner"))
+        db.session.commit()
+        session["workspace_id"] = ws.id
+        flash("Workspace создан.", "success")
+        return redirect(url_for("index"))
+
+    @app.post("/workspace/join")
+    @login_required
+    def workspace_join():
+        if _get_current_workspace():
+            return redirect(url_for("index"))
+        invite_code = (request.form.get("invite_code") or "").strip()
+        if not invite_code:
+            flash("Введите invite code.", "error")
+            return redirect(url_for("onboarding"))
+        ws = Workspace.query.filter(Workspace.invite_code == invite_code).first()
+        if not ws:
+            flash("Workspace с таким invite code не найден.", "error")
+            return redirect(url_for("onboarding"))
+        existing = UserWorkspace.query.filter_by(workspace_id=ws.id, user_id=current_user.id).first()
+        if not existing and ws.owner_id != current_user.id:
+            db.session.add(UserWorkspace(workspace_id=ws.id, user_id=current_user.id, role="member"))
+            db.session.commit()
+        session["workspace_id"] = ws.id
+        flash("Вы присоединились к workspace.", "success")
+        return redirect(url_for("index"))
 
     @app.route("/register", methods=["GET", "POST"])
     def register():
@@ -441,15 +693,44 @@ def create_app() -> Flask:
 
         today = date.today()
 
+        # считаем количество пространств пользователя
+        memberships_q = UserWorkspace.query.filter(UserWorkspace.user_id == current_user.id)
+        workspaces_count = memberships_q.count()
+
+        if workspaces_count == 0:
+            # нет ни одного пространства – ведём в онбординг
+            return redirect(url_for("onboarding"))
+
+        if workspaces_count == 1:
+            # один workspace – автоматически выбираем его и показываем дашборд
+            membership = memberships_q.first()
+            if membership:
+                session["workspace_id"] = membership.workspace_id
+            ws = _get_current_workspace()
+            if not ws:
+                # на случай несогласованности данных всё равно отправим в онбординг
+                return redirect(url_for("onboarding"))
+        else:
+            # несколько workspaces
+            if not session.get("workspace_id"):
+                # если ничего не выбрано – показываем хаб
+                return redirect(url_for("hub"))
+            ws = _get_current_workspace()
+            if not ws:
+                # сохранённый workspace_id невалиден – очищаем и отправляем в хаб
+                session.pop("workspace_id", None)
+                return redirect(url_for("hub"))
+
         mine = request.args.get("mine") == "1"
+        base_q = Project.query.filter(Project.workspace_id == ws.id)
         if current_user.role == "Worker" and mine:
             all_projects = (
-                Project.query.join(ProjectAssignment)
+                base_q.join(ProjectAssignment)
                 .filter(ProjectAssignment.employee_id == current_user.id)
                 .all()
             )
         else:
-            all_projects = Project.query.all()
+            all_projects = base_q.all()
         overdue_projects: list[Project] = []
         active_projects: list[Project] = []
         completed_projects: list[Project] = []
@@ -493,7 +774,7 @@ def create_app() -> Flask:
         else:
             employees_involved = 0
 
-        total_employees = Employee.query.count()
+        total_employees = UserWorkspace.query.filter(UserWorkspace.workspace_id == ws.id).count()
 
         def _budget_to_decimal(v):
             if v is None:
@@ -525,7 +806,9 @@ def create_app() -> Flask:
     @app.route("/project/add", methods=["GET", "POST"])
     @login_required
     def add_project():
-        if current_user.role != "Admin":
+        ws = _get_current_workspace()
+        role_ws = _workspace_role(ws)
+        if role_ws not in {"owner", "admin"}:
             abort(403)
         if request.method == "POST":
             title = request.form.get("title", "").strip()
@@ -556,6 +839,7 @@ def create_app() -> Flask:
                 return redirect(url_for("add_project"))
 
             project = Project(
+                workspace_id=ws.id if ws else None,
                 title=title,
                 description=description,
                 start_date=start_date,
@@ -608,7 +892,10 @@ def create_app() -> Flask:
     @app.route("/project/<int:id>", methods=["GET", "POST"])
     @login_required
     def project_details(id: int):
-        project = Project.query.get_or_404(id)
+        ws = _get_current_workspace()
+        if not ws:
+            abort(403)
+        project = Project.query.filter(Project.id == id, Project.workspace_id == ws.id).first_or_404()
 
         if request.method == "POST":
             if current_user.role != "Admin":
@@ -663,15 +950,20 @@ def create_app() -> Flask:
 
         assigned_employees = (
             Employee.query.join(ProjectAssignment)
-            .filter(ProjectAssignment.project_id == project.id)
+            .join(UserWorkspace, UserWorkspace.user_id == Employee.id)
+            .filter(ProjectAssignment.project_id == project.id, UserWorkspace.workspace_id == ws.id)
             .order_by(Employee.full_name.asc())
             .all()
         )
         assigned_ids = {e.id for e in assigned_employees}
+        base_emp_q = (
+            Employee.query.join(UserWorkspace, UserWorkspace.user_id == Employee.id)
+            .filter(UserWorkspace.workspace_id == ws.id)
+        )
         available_employees = (
-            Employee.query.filter(~Employee.id.in_(assigned_ids)).order_by(Employee.full_name.asc()).all()
+            base_emp_q.filter(~Employee.id.in_(assigned_ids)).order_by(Employee.full_name.asc()).all()
             if assigned_ids
-            else Employee.query.order_by(Employee.full_name.asc()).all()
+            else base_emp_q.order_by(Employee.full_name.asc()).all()
         )
         return render_template(
             "project_details.html",
@@ -683,9 +975,11 @@ def create_app() -> Flask:
     @app.post("/project/<int:id>/assign")
     @login_required
     def assign_employee(id: int):
-        if current_user.role != "Admin":
+        ws = _get_current_workspace()
+        role_ws = _workspace_role(ws)
+        if role_ws not in {"owner", "admin"}:
             abort(403)
-        project = Project.query.get_or_404(id)
+        project = Project.query.filter(Project.id == id, Project.workspace_id == (ws.id if ws else None)).first_or_404()
         employee_id = request.form.get("employee_id")
 
         if not employee_id:
@@ -695,6 +989,9 @@ def create_app() -> Flask:
         employee = Employee.query.get(employee_id)
         if not employee:
             flash("Указанный сотрудник не найден.", "error")
+            return redirect(url_for("project_details", id=project.id))
+        if ws and not UserWorkspace.query.filter_by(workspace_id=ws.id, user_id=employee.id).first():
+            flash("Сотрудник не состоит в этом workspace.", "error")
             return redirect(url_for("project_details", id=project.id))
 
         from models import ProjectAssignment
@@ -718,7 +1015,9 @@ def create_app() -> Flask:
     @app.post("/project/<int:project_id>/unassign/<int:employee_id>")
     @login_required
     def unassign_employee(project_id: int, employee_id: int):
-        if current_user.role != "Admin":
+        ws = _get_current_workspace()
+        role_ws = _workspace_role(ws)
+        if role_ws not in {"owner", "admin"}:
             abort(403)
         from models import ProjectAssignment
 
@@ -733,13 +1032,23 @@ def create_app() -> Flask:
     @app.get("/employees")
     @login_required
     def employees():
-        employees_list = Employee.query.order_by(Employee.full_name.asc()).all()
+        ws = _get_current_workspace()
+        if not ws:
+            return redirect(url_for("hub"))
+        employees_list = (
+            Employee.query.join(UserWorkspace, UserWorkspace.user_id == Employee.id)
+            .filter(UserWorkspace.workspace_id == ws.id)
+            .order_by(Employee.full_name.asc())
+            .all()
+        )
         return render_template("employees.html", employees=employees_list)
 
     @app.route("/employee/add", methods=["GET", "POST"])
     @login_required
     def add_employee():
-        if current_user.role != "Admin":
+        ws = _get_current_workspace()
+        role = _workspace_role(ws)
+        if role not in {"owner", "admin"}:
             abort(403)
         if request.method == "POST":
             full_name = (request.form.get("full_name") or "").strip()
@@ -777,6 +1086,11 @@ def create_app() -> Flask:
             db.session.add(employee)
             db.session.commit()
 
+            # добавляем пользователя в текущий workspace как member (админы управляют составом)
+            if ws:
+                db.session.add(UserWorkspace(workspace_id=ws.id, user_id=employee.id, role="member"))
+                db.session.commit()
+
             if file and file.filename:
                 filename = secure_filename(file.filename)
                 ext = os.path.splitext(filename)[1].lower()
@@ -796,16 +1110,20 @@ def create_app() -> Flask:
     @app.route("/employee/edit/<int:id>", methods=["GET", "POST"])
     @login_required
     def edit_employee(id: int):
-        if current_user.role != "Admin":
+        ws = _get_current_workspace()
+        role_ws = _workspace_role(ws)
+        if role_ws not in {"owner", "admin"}:
             abort(403)
         employee = Employee.query.get_or_404(id)
+
+        # нельзя редактировать сотрудников вне текущего workspace
+        if ws and not UserWorkspace.query.filter_by(workspace_id=ws.id, user_id=employee.id).first():
+            abort(403)
 
         if request.method == "POST":
             full_name = (request.form.get("full_name") or "").strip()
             position = request.form.get("position") or None
-            email = (request.form.get("email") or "").strip() or None
             role = (request.form.get("role") or employee.role or "Worker").strip()
-            password = request.form.get("password") or ""
             file = request.files.get("avatar")
 
             if not full_name:
@@ -818,7 +1136,6 @@ def create_app() -> Flask:
 
             employee.full_name = full_name
             employee.position = position
-            employee.email = email
             if role in {"Admin", "Worker"}:
                 employee.role = role
 
@@ -832,8 +1149,7 @@ def create_app() -> Flask:
                     file.save(os.path.join(avatars_dir, stored_name))
                     employee.avatar_filename = stored_name
 
-            if password.strip():
-                employee.password_hash = generate_password_hash(password.strip())
+            # Email и пароль администратором напрямую не редактируются
 
             db.session.commit()
             flash("Данные сотрудника обновлены.", "success")
@@ -844,9 +1160,16 @@ def create_app() -> Flask:
     @app.post("/employee/delete/<int:id>")
     @login_required
     def delete_employee(id: int):
-        if current_user.role != "Admin":
+        ws = _get_current_workspace()
+        role_ws = _workspace_role(ws)
+        if role_ws not in {"owner", "admin"}:
             abort(403)
         employee = Employee.query.get_or_404(id)
+        if ws and not UserWorkspace.query.filter_by(workspace_id=ws.id, user_id=employee.id).first():
+            abort(403)
+        if ws and ws.owner_id == employee.id:
+            flash("Нельзя удалить владельца workspace.", "error")
+            return redirect(url_for("employees"))
         db.session.delete(employee)
         db.session.commit()
         flash("Сотрудник успешно удален.", "success")

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Присоединиться — Flux{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex items-center justify-center">
+    <div class="max-w-md w-full mx-auto">
+        <form method="post"
+              class="w-full bg-white/95 backdrop-blur-md rounded-2xl border border-slate-100 p-10 shadow-xl space-y-8">
+            <div class="space-y-2 text-center">
+                <h1 class="text-3xl font-extrabold tracking-tight text-slate-950">Присоединиться</h1>
+                <p class="text-sm text-slate-500">Введите invite code рабочего пространства.</p>
+            </div>
+
+            <div class="space-y-1">
+                <label class="block text-[10px] uppercase tracking-widest font-bold text-slate-400">Invite Code</label>
+                <input type="text" name="invite_code" required
+                       class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all">
+            </div>
+
+            <button type="submit"
+                    class="w-full inline-flex justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200 hover:from-indigo-700 hover:to-violet-800 transition-all">
+                Войти в Workspace
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

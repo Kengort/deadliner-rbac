@@ -64,8 +64,11 @@
                 <label for="email" class="block text-sm font-medium text-slate-700">Email</label>
                 <input type="email" id="email" name="email"
                        value="{{ employee.email if employee and employee.email else '' }}"
-                       class="mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10"
-                       placeholder="name@example.com">
+                       class="mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 {% if mode == 'edit' %}opacity-70 cursor-not-allowed{% endif %}"
+                       placeholder="name@example.com" {% if mode == 'edit' %}readonly{% endif %}>
+                {% if mode == 'edit' %}
+                    <p class="mt-2 text-xs text-slate-500">Email защищён и не редактируется администратором.</p>
+                {% endif %}
             </div>
 
             <div class="space-y-1">
@@ -73,7 +76,7 @@
                 <div class="relative">
                     <input type="password" id="password_input" name="password"
                            class="w-full rounded-xl border-transparent bg-slate-50 px-4 py-2 pr-12 text-sm focus:bg-white focus:ring-4 focus:ring-indigo-500/10 transition-all"
-                           placeholder="Введите пароль" {% if mode != 'edit' %}required{% endif %}>
+                           placeholder="Введите пароль" {% if mode != 'edit' %}required{% endif %} {% if mode == 'edit' %}disabled{% endif %}>
                     <button type="button" onclick="togglePassword()"
                             class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                         <svg id="eye_icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -83,7 +86,7 @@
                     </button>
                 </div>
                 {% if mode == 'edit' %}
-                    <p class="text-xs text-slate-500">Оставьте пустым, если не хотите менять пароль.</p>
+                    <p class="text-xs text-slate-500">Пароль защищён и не меняется через админ‑форму.</p>
                 {% endif %}
             </div>
 
