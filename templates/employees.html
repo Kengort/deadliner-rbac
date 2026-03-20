@@ -11,7 +11,7 @@
                 Список сотрудников компании.
             </p>
         </div>
-        {% if current_user.role == 'Admin' %}
+        {% if workspace_role in ['owner', 'admin'] %}
             <a href="{{ url_for('add_employee') }}"
                class="inline-flex items-center rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700">
                 Добавить сотрудника
@@ -43,7 +43,7 @@
                     <th class="px-4 py-3 text-left font-semibold text-slate-600">ФИО</th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-600">Должность</th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-600">Email</th>
-                    {% if current_user.role == 'Admin' %}
+                    {% if workspace_role == 'owner' %}
                         <th class="px-3 py-2 text-right font-semibold text-slate-600">Действия</th>
                     {% endif %}
                 </tr>
@@ -80,7 +80,7 @@
                                 <span class="text-slate-400">не указан</span>
                             {% endif %}
                         </td>
-                        {% if current_user.role == 'Admin' %}
+                        {% if workspace_role == 'owner' %}
                             <td class="px-3 py-2 text-right text-xs">
                                 <a href="{{ url_for('edit_employee', id=employee.id) }}"
                                    class="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 bg-white text-[11px] text-slate-600 shadow-sm hover:bg-slate-50"

@@ -13,7 +13,7 @@
             </h2>
             <p class="text-sm text-slate-500 mt-1">
                 {% if mode == 'edit' %}
-                    Измените данные сотрудника и сохраните изменения.
+                    Изменить можно только роль сотрудника в пространстве.
                 {% else %}
                     Заполните форму, чтобы добавить нового сотрудника.
                 {% endif %}
@@ -27,6 +27,7 @@
 
     <form method="post" enctype="multipart/form-data" class="space-y-6 bg-white/90 rounded-2xl border border-slate-200/80 p-6 shadow-lg backdrop-blur">
         <div class="space-y-4">
+            {% if mode != 'edit' %}
             <div>
                 <label class="block text-sm font-medium text-slate-700">Аватар</label>
                 <div class="mt-2 flex items-center gap-4">
@@ -40,43 +41,62 @@
                              src="https://ui-avatars.com/api/?name={{ name|urlencode }}&background=6366f1&color=fff"
                              alt="avatar">
                     {% endif %}
-
                     <input id="avatar-input" type="file" name="avatar" accept="image/*"
                            class="block text-sm text-slate-600 file:mr-4 file:rounded-xl file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-700">
                 </div>
                 <p class="mt-2 text-xs text-slate-500">PNG/JPG/WEBP. Для новых сотрудников можно загрузить после сохранения.</p>
             </div>
+            {% else %}
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Аватар</label>
+                <div class="mt-2 flex items-center gap-4">
+                    {% if employee and employee.avatar_filename %}
+                        <img id="avatar-preview" class="h-12 w-12 rounded-full object-cover border border-slate-200"
+                             src="{{ url_for('static', filename='avatars/' ~ employee.avatar_filename) }}"
+                             alt="avatar">
+                    {% else %}
+                        {% set name = (employee.full_name if employee else 'User') %}
+                        <img id="avatar-preview" class="h-12 w-12 rounded-full object-cover border border-slate-200"
+                             src="https://ui-avatars.com/api/?name={{ name|urlencode }}&background=6366f1&color=fff"
+                             alt="avatar">
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
             <div>
                 <label for="full_name" class="block text-sm font-medium text-slate-700">ФИО</label>
-                <input type="text" id="full_name" name="full_name" required
+                <input type="text" id="full_name" name="full_name" {% if mode != 'edit' %}required{% endif %}
                        value="{{ employee.full_name if employee else '' }}"
-                       class="mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+                       class="mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 {% if mode == 'edit' %}opacity-70 cursor-not-allowed bg-slate-100{% endif %}"
+                       {% if mode == 'edit' %}disabled{% endif %}>
             </div>
 
             <div>
                 <label for="position" class="block text-sm font-medium text-slate-700">Должность</label>
                 <input type="text" id="position" name="position"
                        value="{{ employee.position if employee and employee.position else '' }}"
-                       class="mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10">
+                       class="mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 {% if mode == 'edit' %}opacity-70 cursor-not-allowed bg-slate-100{% endif %}"
+                       {% if mode == 'edit' %}disabled{% endif %}>
             </div>
 
             <div>
                 <label for="email" class="block text-sm font-medium text-slate-700">Email</label>
                 <input type="email" id="email" name="email"
                        value="{{ employee.email if employee and employee.email else '' }}"
-                       class="mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 {% if mode == 'edit' %}opacity-70 cursor-not-allowed{% endif %}"
-                       placeholder="name@example.com" {% if mode == 'edit' %}readonly{% endif %}>
-                {% if mode == 'edit' %}
-                    <p class="mt-2 text-xs text-slate-500">Email защищён и не редактируется администратором.</p>
-                {% endif %}
+                       class="mt-1 block w-full rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-sm shadow-sm focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 {% if mode == 'edit' %}opacity-70 cursor-not-allowed bg-slate-100{% endif %}"
+                       placeholder="name@example.com" {% if mode == 'edit' %}disabled{% endif %}>
             </div>
+            {% if mode == 'edit' %}
+            <p class="text-xs text-slate-500 -mt-2">Эти данные являются частью личного аккаунта сотрудника и не могут быть изменены.</p>
+            {% endif %}
 
+            {% if mode != 'edit' %}
             <div class="space-y-1">
                 <label class="block text-sm font-medium text-slate-700">Пароль для входа</label>
                 <div class="relative">
-                    <input type="password" id="password_input" name="password"
+                    <input type="password" id="password_input" name="password" required
                            class="w-full rounded-xl border-transparent bg-slate-50 px-4 py-2 pr-12 text-sm focus:bg-white focus:ring-4 focus:ring-indigo-500/10 transition-all"
-                           placeholder="Введите пароль" {% if mode != 'edit' %}required{% endif %} {% if mode == 'edit' %}disabled{% endif %}>
+                           placeholder="Введите пароль">
                     <button type="button" onclick="togglePassword()"
                             class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                         <svg id="eye_icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -85,10 +105,8 @@
                         </svg>
                     </button>
                 </div>
-                {% if mode == 'edit' %}
-                    <p class="text-xs text-slate-500">Пароль защищён и не меняется через админ‑форму.</p>
-                {% endif %}
             </div>
+            {% endif %}
 
             <div>
                 <label for="role" class="block text-sm font-medium text-slate-700">Роль</label>

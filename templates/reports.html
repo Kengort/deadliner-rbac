@@ -154,10 +154,13 @@
                 </table>
             </div>
         {% else %}
-            <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
-                <h3 class="text-lg font-semibold text-slate-800">Нет проектов по выбранным фильтрам</h3>
+            <div class="rounded-2xl border border-dashed border-slate-300 bg-white/70 backdrop-blur-md px-6 py-12 text-center shadow-sm">
+                <div class="mx-auto mb-4 h-14 w-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <i data-lucide="folder-open" class="w-7 h-7 opacity-20"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-slate-800">В этом пространстве пока нет проектов</h3>
                 <p class="mt-2 text-sm text-slate-500">
-                    Попробуйте изменить параметры фильтра.
+                    Добавьте первый проект или измените фильтры.
                 </p>
             </div>
         {% endif %}

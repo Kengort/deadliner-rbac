@@ -3,26 +3,45 @@
 {% block title %}Создать Workspace — Flux{% endblock %}
 
 {% block content %}
-<div class="min-h-[70vh] flex items-center justify-center">
-    <div class="max-w-md w-full mx-auto">
-        <form method="post"
-              class="w-full bg-white/95 backdrop-blur-md rounded-2xl border border-slate-100 p-10 shadow-xl space-y-8">
-            <div class="space-y-2 text-center">
-                <h1 class="text-3xl font-extrabold tracking-tight text-slate-950">Новый Workspace</h1>
-                <p class="text-sm text-slate-500">Создайте рабочее пространство Flux.</p>
+<div class="min-h-screen w-full flex items-center justify-center bg-white/90 backdrop-blur-sm">
+    <div class="w-full max-w-lg px-6">
+        <div class="flex items-center justify-between mb-6">
+            <a href="{{ url_for('hub') }}"
+               class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/70 backdrop-blur-md px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white transition">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                Назад в Хаб
+            </a>
+            <img src="{{ url_for('static', filename='images/flux_wordmark_final.png') }}" alt="Flux" class="w-32">
+        </div>
+
+        <div class="bg-white/80 backdrop-blur-md rounded-3xl border border-slate-200/70 shadow-2xl p-10">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="h-12 w-12 rounded-2xl bg-indigo-600/10 text-indigo-700 flex items-center justify-center">
+                    <i data-lucide="plus-circle" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold tracking-tight text-slate-950">Создать пространство</h1>
+                    <p class="text-sm text-slate-500">Название можно изменить позже.</p>
+                </div>
             </div>
 
-            <div class="space-y-1">
-                <label class="block text-[10px] uppercase tracking-widest font-bold text-slate-400">Название</label>
-                <input type="text" name="name" required
-                       class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all">
-            </div>
+            <form method="post" action="{{ url_for('workspace_create') }}" class="space-y-6">
+                <div>
+                    <label class="block text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1">Название организации</label>
+                    <input type="text"
+                           name="name"
+                           required
+                           placeholder="Например: Flux Studio"
+                           class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all">
+                </div>
 
-            <button type="submit"
-                    class="w-full inline-flex justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200 hover:from-indigo-700 hover:to-violet-800 transition-all">
-                Создать
-            </button>
-        </form>
+                <button type="submit"
+                        class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-br from-indigo-600 to-violet-700 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 hover:from-indigo-700 hover:to-violet-800 transition-all">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    Создать пространство
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}
